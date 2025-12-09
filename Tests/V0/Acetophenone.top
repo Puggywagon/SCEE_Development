@@ -1,0 +1,15 @@
+;Include forcefield parameters
+#include "forcefield.itp"
+
+#include "Acetophenone_AA.itp"
+#include "Acetophenone_UA.itp"
+
+
+[ system ]
+; Name
+Acetophenone
+
+[ molecules ]
+; Compound        #mols
+Acetophenone           1
+Ace            1289
