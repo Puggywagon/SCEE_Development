@@ -207,9 +207,6 @@ class Oniom_Generation(object):
             elif Gro_Atom_Types == 'HN':
                 Sigma=0.2673
                 Epsilon=0.0418
-            elif Gro_Atom_Types == 'H':
-                Sigma=0.2673
-                Epsilon=0.0418
             elif Gro_Atom_Types == 'HW':
                 Sigma=0.2673
                 Epsilon=0.0418
@@ -241,17 +238,37 @@ class Oniom_Generation(object):
                     Dummy=0
             else:
                 Dummy=0
-                if q1>0 and q2>0 and q3>0:
-                    with open(Oniom, 'a') as file:
+            if q1>0 and q2>0 and q3>0:
+                with open(Oniom, 'a') as file:
+                    if Gro_Atom_Types=='C_2':
+                        Gro_Atom_Types='CO'
                         file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
-                elif q1==0 and q2==0 and q3==0:
-                    with open(Oniom, 'a') as file:
+                    elif Gro_Atom_Types=='O_2':
+                        Gro_Atom_Types='OC'
+                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
+                    else:
+                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
+            elif q1==0 and q2==0 and q3==0:
+                with open(Oniom, 'a') as file:
+                    if Gro_Atom_Types=='C_2':
+                        Gro_Atom_Types='CO'
+                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
+                    elif Gro_Atom_Types=='O_2':
+                        Gro_Atom_Types='OC'
+                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
+                    else:
                         file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
 
-                elif q1<0 and q2<0 and q3<0:
-                    with open(Oniom, 'a') as file:
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f}{Epsilon:7.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
-                   
+            elif q1<0 and q2<0 and q3<0:
+                with open(Oniom, 'a') as file:
+                    if Gro_Atom_Types=='C_2':
+                        Gro_Atom_Types='CO'
+                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
+                    elif Gro_Atom_Types=='O_2':
+                        Gro_Atom_Types='OC'
+                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
+                    else:
+                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')   
         with open(Oniom, 'a') as file:
             file.write("\n")
 ################################################################################
@@ -309,9 +326,6 @@ class Oniom_Generation(object):
             elif Gro_Atom_Types == 'HN':
                 Sigma=0.2673
                 Epsilon=0.0418
-            elif Gro_Atom_Types == 'H':
-                Sigma=0.2673
-                Epsilon=0.0418
             elif Gro_Atom_Types == 'HW':
                 Sigma=0.2673
                 Epsilon=0.0418
@@ -328,17 +342,38 @@ class Oniom_Generation(object):
                 q1=wi*qmax*qr1       
                 q2=wi*qmax*qr2        
                 q3=wi*qmax*qr3
+
             if q1>0 and q2>0 and q3>0:
                 with open(Oniom, 'a') as file:
-                    file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
+                    if Gro_Atom_Types=='C_2':
+                        Gro_Atom_Types='CO'
+                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
+                    elif Gro_Atom_Types=='O_2':
+                        Gro_Atom_Types='OC'
+                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
+                    else:
+                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
             elif q1==0 and q2==0 and q3==0:
                 with open(Oniom, 'a') as file:
-                    file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
+                    if Gro_Atom_Types=='C_2':
+                        Gro_Atom_Types='CO'
+                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
+                    elif Gro_Atom_Types=='O_2':
+                        Gro_Atom_Types='OC'
+                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
+                    else:
+                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
 
             elif q1<0 and q2<0 and q3<0:
                 with open(Oniom, 'a') as file:
-                    file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f}{Epsilon:7.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
-             
+                    if Gro_Atom_Types=='C_2':
+                        Gro_Atom_Types='CO'
+                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
+                    elif Gro_Atom_Types=='O_2':
+                        Gro_Atom_Types='OC'
+                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
+                    else:
+                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')   
 #################################################################################            
     def get_atomtypes(self,txt):
         atomtype_dict = []                    
@@ -453,7 +488,6 @@ class Oniom_Generation(object):
         elif Gro_Atom_Types == 'OK':
             Gaus_Atom_Types = 'O'
             return Gaus_Atom_Types 
-            return Gaus_Atom_Types 
                 
         elif Gro_Atom_Types == 'CK':
             Gaus_Atom_Types = 'C' 
@@ -517,10 +551,6 @@ class Oniom_Generation(object):
 
         elif Gro_Atom_Types == 'CN':
             Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types
-
-        elif Gro_Atom_Types == 'NC':
-            Gaus_Atom_Types = 'N'
             return Gaus_Atom_Types
 
 #################################################################################        
