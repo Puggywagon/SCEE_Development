@@ -14,8 +14,6 @@ class Oniom_Generation(object):
         atom_dict=self.get_atoms(txt)
         atoms=pd.DataFrame(atom_dict)
         atoms.columns=['id','at_type','res num','res_name','at_name','cg nr','charge','mass']
-
-        print(atoms,atom_types)
         
         Gros=[]
         Masses=[]
@@ -24,50 +22,15 @@ class Oniom_Generation(object):
             Mass=atoms.iloc[index]['mass']
             Gros.append(Gro)
             Masses.append(Mass)
-        Heavy_Atoms,Total_Atoms=Atoms.Atom_Types(Gros,Masses)
-            
-        return Heavy_Atoms,Total_Atoms
-################################################################################
-    def Calc_Qmax(self,Solute,Oniom,dummy,split):
-        txt=Solute
-        atom_dict=self.get_atoms(txt)
-        atoms=pd.DataFrame(atom_dict)
-        atoms.columns=['id','at_type','res num','res_name','at_name','cg nr','charge','mass']
-        
-        if dummy == 'yes' and split == 'yes':
-            f2 = open(f'oplsaaff.itp')
-            forcefield = f2.read()        
-            f2.close()
-            atomtype_dict=self.get_atomtypes(txt)
-            atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','','MW','q','Dummy_Bead','Sigma','Epsilon']
-        
-        elif dummy == 'yes' and split == 'no':
-            atomtype_dict=self.get_atomtypes(txt)
-            atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','','MW','q','Dummy_Bead','Sigma','Epsilon']
-        elif dummy == 'no' and split == 'yes':
-            f2 = open(f'oplsaaff.itp')
-            txt = f2.read()        
-            f2.close()
-            atomtype_dict=self.get_atomtypes(txt)
-            atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','','mass','q','Dummy_Bead','Sigma','Epsilon']
-        else:
-            atomtype_dict=self.get_atomtypes(txt)
-            atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','','mass','q','Dummy_Bead','Sigma','Epsilon']
-          
+        Heavy_Atoms, Total_Atoms=Atoms.Atom_Types(Gros,Masses)
+        # We need qmax both for in the oniom generation and in the dipole moment scaling after the oniom generation step in the Run_SCEE script
         qilist=[]
-        atom_counts=0
         for index, row in atoms.iterrows():
-            matching_type = atom_types.loc[atom_types['name'] == row['at_type']]
-            qlist=matching_type.iloc[0]['q']
+            qlist=atoms.iloc[index]['charge']
             qilist.append(abs(qlist))
-            atom_counts += 1
-        Total_Atoms=atom_counts
         qmax=max(qilist)
-        return qmax,Total_Atoms
+            
+        return Heavy_Atoms,Total_Atoms,qmax
 ################################################################################
     def QM_Inputs(self,Solute,Oniom,dummy,split,qr1,qr2,qr3):
         txt=Solute
@@ -75,6 +38,35 @@ class Oniom_Generation(object):
         atoms=pd.DataFrame(atom_dict)
         atoms.columns=['id','at_type','res num','res_name','at_name','cg nr','charge','mass']
         
+        Gros=[]
+        Masses=[]
+        for index, row in atoms.iterrows():
+            Gro=atoms.iloc[index]['at_name']
+            Mass=atoms.iloc[index]['mass']
+            Gros.append(Gro)
+            Masses.append(Mass)
+            if Gro_Atom_Types == 'OW':
+                spicy=row['id']
+            else:
+                spicy=0
+        Total_Atoms, Gro_List, Gaus_List, Dummy_List=Atoms.Atom_Types(Gros,Masses)
+        
+        qilist=[]
+        for index, row in atoms.iterrows():
+            qlist=atoms.iloc[index]['charge']
+            qilist.append(abs(qlist))
+        qmax=max(qilist)
+        
+        if spicy == 0:
+            Central_Atom=qilist.index(qmax)+1
+        else:
+            Central_Atom=spicy+1
+    
+        with open(Oniom, 'a') as file:
+            file.write(f'{Total_Atoms:.0f} {Central_Atom:.0f}\n')
+        
+        
+        # This bit I will need a little help with. It is to do with the inconsistency of what is in the [ atomtypes ], I have seen versions with the dummy column and others without it. Variations causes errors in the atom_types dataframe. We need the [ atomtypes ] section as we need to extract sigma and epsilon from this list. So we will need some way of telling users to provide us access to those numbers ether through having an atom types section in the topology or giving us the forcefield file but this needs to be consistent... We have preassigned some of these however.
         if dummy == 'yes' and split == 'yes':
             f2 = open(f'oplsaaff.itp')
             forcefield = f2.read()        
@@ -82,9 +74,8 @@ class Oniom_Generation(object):
             atomtype_dict=self.get_atomtypes(txt)
             atom_types=pd.DataFrame(atomtype_dict)
             atom_types.columns=['name','type','MW','q','Dummy_Bead','Sigma','Epsilon']
-        
         elif dummy == 'yes' and split == 'no':
-            atomtype_dict=self.get_atomtypes(txt)
+            atomtype_dict=sel        f.get_atomtypes(txt)
             atom_types=pd.DataFrame(atomtype_dict)
             atom_types.columns=['name','type','MW','q','Dummy_Bead','Sigma','Epsilon']
         elif dummy == 'no' and split == 'yes':
@@ -98,61 +89,49 @@ class Oniom_Generation(object):
             atomtype_dict=self.get_atomtypes(txt)
             atom_types=pd.DataFrame(atomtype_dict)
             atom_types.columns=['name','type','mass','q','Dummy_Bead','Sigma','Epsilon']
-          
-        qilist=[]
-        atom_counts=0
 
+        Sigma_List=[]
+        Epsilon_List=[]
         for index, row in atoms.iterrows():
             matching_type = atom_types.loc[atom_types['name'] == row['at_type']]
-            qlist=matching_type.iloc[0]['q']
-            Gro_Atom_Types=matching_type.iloc[0]['type']
-            if Gro_Atom_Types == 'OW':
-                spicy=row['id']
-            else:
-                spicy=0
-            qilist.append(abs(qlist))
-            atom_counts += 1
-        
-        if spicy == 0:
-            Central_Atom=qilist.index(qmax)+1
-        else:
-            Central_Atom=spicy+1
-        Total_Atoms_str=atom_counts
-    
-        with open(Oniom, 'a') as file:
-            file.write(f'{Total_Atoms_str:.0f} {Central_Atom:.0f}\n')
-   
-   
-        for index, row in atoms.iterrows():
-            matching_type = atom_types.loc[atom_types['name'] == row['at_type']]
-            Gro_Atom_Types=matching_type.iloc[0]['type']
-            Gaus_Atom_Types=self.gro_to_gaus(Gro_Atom_Types)
             if Gro_Atom_Types == 'OW':
                 Sigma=matching_type.iloc[0]['Sigma']*10
                 Epsilon=matching_type.iloc[0]['Epsilon']
+                Sigma_List.append(Sigma)
+                Epsilon_List.append(Epsilon)
             elif Gro_Atom_Types == 'HO':
                 Sigma=0.2673
                 Epsilon=0.0418
+                Sigma_List.append(Sigma)
+                Epsilon_List.append(Epsilon)
             elif Gro_Atom_Types == 'HN':
                 Sigma=0.2673
                 Epsilon=0.0418
+                Sigma_List.append(Sigma)
+                Epsilon_List.append(Epsilon)
             elif Gro_Atom_Types == 'HW':
                 Sigma=0.2673
                 Epsilon=0.0418
+                Sigma_List.append(Sigma)
+                Epsilon_List.append(Epsilon)
             else:
                 Sigma=matching_type.iloc[0]['Sigma']
                 Epsilon=matching_type.iloc[0]['Epsilon']
-            qi=matching_type.iloc[0]['q']
+                Sigma_List.append(Sigma)
+                Epsilon_List.append(Epsilon)
+            
+            
+        for G,Gro,Gaus,Dummy,qi,Sigma,Epsilon in zip(Gros,Gro_List,Gaus_List,Dummy_List,qilist,Sigma_List,Epsilon_List):
             wi=qi/qmax            
-            if Gro_Atom_Types == 'OW':
+            if G == 'OW':
                 q1=-qmax*qr1  
                 q2=-qmax*qr2      
                 q3=-qmax*qr3
-            elif Gro_Atom_Types == 'MW':
+            elif G == 'MW':
                 q1=0      
                 q2=0  
                 q3=0
-            elif not Gro_Atom_Types == 'MW' and not Gro_Atom_Types == 'OW' and wi == 1:
+            elif not G == 'MW' and not G == 'OW' and wi == 1:
                 q1=qmax*qr1       
                 q2=qmax*qr2        
                 q3=qmax*qr3
@@ -160,44 +139,19 @@ class Oniom_Generation(object):
                 q1=wi*qmax*qr1         
                 q2=wi*qmax*qr2       
                 q3=wi*qmax*qr3
-            if dummy == 'Yes':
-                if matching_type.iloc[0]['Dummy_Bead'] == str('D'):
-                    Dummy=1
-                elif matching_type.iloc[0]['Dummy_Bead'] == str('A'):
-                    Dummy=0
-            else:
-                Dummy=0
+
             if q1>0 and q2>0 and q3>0:
                 with open(Oniom, 'a') as file:
-                    if Gro_Atom_Types=='C_2':
-                        Gro_Atom_Types='CO'
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
-                    elif Gro_Atom_Types=='O_2':
-                        Gro_Atom_Types='OC'
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
-                    else:
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
+                    file.write(f'{Gaus:2s} {Gro:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
             elif q1==0 and q2==0 and q3==0:
                 with open(Oniom, 'a') as file:
-                    if Gro_Atom_Types=='C_2':
-                        Gro_Atom_Types='CO'
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
-                    elif Gro_Atom_Types=='O_2':
-                        Gro_Atom_Types='OC'
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
-                    else:
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
+                    file.write(f'{Gaus:2s} {Gro:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
 
             elif q1<0 and q2<0 and q3<0:
                 with open(Oniom, 'a') as file:
-                    if Gro_Atom_Types=='C_2':
-                        Gro_Atom_Types='CO'
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
-                    elif Gro_Atom_Types=='O_2':
-                        Gro_Atom_Types='OC'
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')
-                    else:
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')   
+                    file.write(f'{Gaus:2s} {Gro:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f} {Dummy:.0f}\n')   
+                           
+        #Note we are going to have issues for when we start adding Cl, Na etc due to the formating above...                
         with open(Oniom, 'a') as file:
             file.write("\n")
 ################################################################################
@@ -207,6 +161,35 @@ class Oniom_Generation(object):
         atoms=pd.DataFrame(atom_dict)
         atoms.columns=['id','at_type','res num','res_name','at_name','cg nr','charge','mass'] 
         
+        Gros=[]
+        Masses=[]
+        for index, row in atoms.iterrows():
+            Gro=atoms.iloc[index]['at_name']
+            Mass=atoms.iloc[index]['mass']
+            Gros.append(Gro)
+            Masses.append(Mass)
+            if Gro_Atom_Types == 'OW':
+                spicy=row['id']
+            else:
+                spicy=0
+        Total_Atoms, Gro_List, Gaus_List=Atoms.Atom_Types(Gros,Masses)
+        
+        qilist=[]
+        for index, row in atoms.iterrows():
+            qlist=atoms.iloc[index]['charge']
+            qilist.append(abs(qlist))
+        qmax=max(qilist)
+        
+        if spicy == 0:
+            Central_Atom=qilist.index(qmax)+1
+        else:
+            Central_Atom=spicy+1
+    
+        with open(Oniom, 'a') as file:
+            file.write(f'{Total_Atoms:.0f} {Central_Atom:.0f}\n')
+            
+            
+         # Unless we tell users to include sigma and epsilon in the [ atoms ] we still need a way of extracting these for the molecules? I dunno if that is something that works for gromacs. I also dunno how we even going about generalising this for other software.
         if split == 'yes':
             f2 = open(f'oplsaaff.itp')
             txt = f2.read()        
@@ -219,90 +202,69 @@ class Oniom_Generation(object):
             atom_types=pd.DataFrame(atomtype_dict)
             atom_types.columns=['name','type','mass','q','ptype','Sigma','Epsilon']
                                   
-        qilist=[]
-        atom_counts=0
-        
+        Sigma_List=[]
+        Epsilon_List=[]
         for index, row in atoms.iterrows():
             matching_type = atom_types.loc[atom_types['name'] == row['at_type']]
-            qlist=matching_type.iloc[0]['q']
-            Gro_Atom_Types=matching_type.iloc[0]['type']
-            if Gro_Atom_Types == 'OW':
-                spicy=row['id']
-            else:
-                spicy=0
-            qilist.append(abs(qlist))
-            atom_counts += 1
-        
-        if spicy == 0:
-            Central_Atom=qilist.index(qmax)+1
-        else:
-            Central_Atom=spicy+1
-        Total_Atoms_str=atom_counts
-        
-        with open(Oniom, 'a') as file:
-            file.write(f'{Total_Atoms_str:.0f} {Central_Atom:.0f}\n')
-    
-        for index, row in atoms.iterrows():
-            matching_type = atom_types.loc[atom_types['name'] == row['at_type']]
-            Gro_Atom_Types=matching_type.iloc[0]['type']
-            Gaus_Atom_Types=self.gro_to_gaus(Gro_Atom_Types)
             if Gro_Atom_Types == 'OW':
                 Sigma=matching_type.iloc[0]['Sigma']*10
                 Epsilon=matching_type.iloc[0]['Epsilon']
+                Sigma_List.append(Sigma)
+                Epsilon_List.append(Epsilon)
             elif Gro_Atom_Types == 'HO':
                 Sigma=0.2673
                 Epsilon=0.0418
+                Sigma_List.append(Sigma)
+                Epsilon_List.append(Epsilon)
             elif Gro_Atom_Types == 'HN':
                 Sigma=0.2673
                 Epsilon=0.0418
+                Sigma_List.append(Sigma)
+                Epsilon_List.append(Epsilon)
             elif Gro_Atom_Types == 'HW':
                 Sigma=0.2673
                 Epsilon=0.0418
+                Sigma_List.append(Sigma)
+                Epsilon_List.append(Epsilon)
             else:
                 Sigma=matching_type.iloc[0]['Sigma']
                 Epsilon=matching_type.iloc[0]['Epsilon']
-            qi=matching_type.iloc[0]['q']
-            wi=qi/qmax
-            if qi == qmax:
-                q1=qmax*qr1        
+                Sigma_List.append(Sigma)
+                Epsilon_List.append(Epsilon)
+            
+            
+        for G,Gro,Gaus,qi,Sigma,Epsilon in zip(Gros,Gro_List,Gaus_List,qilist,Sigma_List,Epsilon_List):
+            wi=qi/qmax            
+            if G == 'OW':
+                q1=-qmax*qr1  
+                q2=-qmax*qr2      
+                q3=-qmax*qr3
+            elif G == 'MW':
+                q1=0      
+                q2=0  
+                q3=0
+            elif not G == 'MW' and not G == 'OW' and wi == 1:
+                q1=qmax*qr1       
                 q2=qmax*qr2        
                 q3=qmax*qr3
             else:
-                q1=wi*qmax*qr1       
-                q2=wi*qmax*qr2        
+                q1=wi*qmax*qr1         
+                q2=wi*qmax*qr2       
                 q3=wi*qmax*qr3
 
             if q1>0 and q2>0 and q3>0:
                 with open(Oniom, 'a') as file:
-                    if Gro_Atom_Types=='C_2':
-                        Gro_Atom_Types='CO'
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
-                    elif Gro_Atom_Types=='O_2':
-                        Gro_Atom_Types='OC'
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
-                    else:
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
+                    file.write(f'{Gaus:2s} {Gro:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
             elif q1==0 and q2==0 and q3==0:
                 with open(Oniom, 'a') as file:
-                    if Gro_Atom_Types=='C_2':
-                        Gro_Atom_Types='CO'
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
-                    elif Gro_Atom_Types=='O_2':
-                        Gro_Atom_Types='OC'
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
-                    else:
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
+                    file.write(f'{Gaus:2s} {Gro:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
 
             elif q1<0 and q2<0 and q3<0:
                 with open(Oniom, 'a') as file:
-                    if Gro_Atom_Types=='C_2':
-                        Gro_Atom_Types='CO'
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
-                    elif Gro_Atom_Types=='O_2':
-                        Gro_Atom_Types='OC'
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')
-                    else:
-                        file.write(f'{Gaus_Atom_Types:2s} {Gro_Atom_Types:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')   
+                    file.write(f'{Gaus:2s} {Gro:0s} {Sigma:6.4f} {Epsilon:5.4f} {q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n')   
+        #Note we are going to have issues for when we start adding Cl, Na etc due to the formating above...                
+        with open(Oniom, 'a') as file:
+            file.write("\n")
 #################################################################################            
     def get_atomtypes(self,txt):
         atomtype_dict = []                    

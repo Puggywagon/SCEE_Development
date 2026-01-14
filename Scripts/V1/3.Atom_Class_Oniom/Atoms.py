@@ -11,7 +11,7 @@ class Atoms(object):
     "H": 1.008, "B": 10.811, "C": 12.011, "N": 14.007, "O": 15.999, "F": 18.998,
     "P": 30.974, "S": 32.065, "Cl": 35.453, "Br": 79.904, "I": 126.904,
     "Li": 6.941, "Na": 22.990, "Mg": 24.305, "Si": 28.086, "K": 39.098, "Ca": 40.078
-        }
+        } # Probably need to handle deviations from this
 
         pass
 ################################################################################################## 
@@ -82,7 +82,7 @@ class Atoms(object):
         Gro_List=[]
         for n, i in enumerate(Gaus_List, start=1):
             Gro = f"{i}{n}"
-            Gro_List.append(Gro)
+            Gro_List.append(Gro) #This may need to work a little differently for QM and MM so we are assigning different values of the MM and QM parts of a system and will need a suggestion for this
         
         Heavy_Atoms=0
         Total_Atoms=0
