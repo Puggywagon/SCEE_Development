@@ -14,9 +14,7 @@ class Atoms(object):
         } # Probably need to handle deviations from this
 
         pass
-################################################################################################## 
-#What I don't know how to do is handling finding sigma and epsilon...
-##################################################################################################         
+##################################################################################################  
     def _closest_by_mass(self, mass: float, candidates: list[str], tol: float) -> str | None:
         best = None
         best_err = None
@@ -29,11 +27,6 @@ class Atoms(object):
         return None
 ##################################################################################################         
     def gaussian_symbol_from_atomname(self, atomname: str, mass: float | None = None) -> str:
-        """
-        Returns Gaussian symbol: element like 'C'/'Cl' or 'Bq' for recognised dummy sites.
-        Raises if cannot be resolved confidently.
-        """
-        name = atomname.strip()
         if not name:
             raise ValueError("Empty atomname cannot be resolved")
 
