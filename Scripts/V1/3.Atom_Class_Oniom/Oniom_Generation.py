@@ -1,103 +1,32 @@
 #!/usr/bin/python3
 import pandas as pd
 import re
+import Atoms
+
+Atoms=Atoms.Atoms()
 
 class Oniom_Generation(object):
     def __init__(self):
         pass
 ################################################################################
-    def Calc_Heavys(self,Solute,dummy,split):
+    def Calc_Heavys(self,Solute):
         txt=Solute
         atom_dict=self.get_atoms(txt)
         atoms=pd.DataFrame(atom_dict)
         atoms.columns=['id','at_type','res num','res_name','at_name','cg nr','charge','mass']
-        
-        if dummy == 'yes' and split == 'yes':
-            f2 = open(f'oplsaaff.itp')
-            forcefield = f2.read()        
-            f2.close()
-            atomtype_dict=self.get_atomtypes(txt)
-            atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','MW','q','Dummy_Bead','Sigma','Epsilon']
-        
-        elif dummy == 'yes' and split == 'no':
-            atomtype_dict=self.get_atomtypes(txt)
-            atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','MW','q','Dummy_Bead','Sigma','Epsilon']
-        elif dummy == 'no' and split == 'yes':
-            f2 = open(f'oplsaaff.itp')
-            txt = f2.read()        
-            f2.close()
-            atomtype_dict=self.get_atomtypes(txt)
-            atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','mass','q','Dummy_Bead','Sigma','Epsilon']
-        else:
-            atomtype_dict=self.get_atomtypes(txt)
-            atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','mass','q','Dummy_Bead','Sigma','Epsilon']
-        
+
         print(atoms,atom_types)
         
-        
-        heavy_atoms=0
+        Gros=[]
+        Masses=[]
         for index, row in atoms.iterrows():
-            matching_type = atom_types.loc[atom_types['name'] == row['at_type']]
-            print(f"Shape of matching_type: {matching_type.shape}")
-            print(f"Contents of matching_type:\n{matching_type.to_string()}")
-            Gro_Atom_Types=matching_type.iloc[0]['type']
-            if Gro_Atom_Types == 'OW':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'OH':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'NH':
-                heavy_atoms +=1            
-            elif Gro_Atom_Types == 'CM':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'CA':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'CB':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'CC':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'CD':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'CE':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'CF':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'CG':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'OK':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'CK':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'C!':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'C=':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'CT':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'CT':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'CT_4':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'F':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'Cl':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'OC':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'CO':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'C_2':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'O_2':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'NT':
-                heavy_atoms +=1
-            elif Gro_Atom_Types == 'CN':
-                heavy_atoms += 1
-        return heavy_atoms
+            Gro=atoms.iloc[index]['at_name']
+            Mass=atoms.iloc[index]['mass']
+            Gros.append(Gro)
+            Masses.append(Mass)
+        Heavy_Atoms,Total_Atoms=Atoms.Atom_Types(Gros,Masses)
+            
+        return Heavy_Atoms,Total_Atoms
 ################################################################################
     def Calc_Qmax(self,Solute,Oniom,dummy,split):
         txt=Solute
@@ -111,23 +40,23 @@ class Oniom_Generation(object):
             f2.close()
             atomtype_dict=self.get_atomtypes(txt)
             atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','MW','q','Dummy_Bead','Sigma','Epsilon']
+            atom_types.columns=['name','type','','MW','q','Dummy_Bead','Sigma','Epsilon']
         
         elif dummy == 'yes' and split == 'no':
             atomtype_dict=self.get_atomtypes(txt)
             atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','MW','q','Dummy_Bead','Sigma','Epsilon']
+            atom_types.columns=['name','type','','MW','q','Dummy_Bead','Sigma','Epsilon']
         elif dummy == 'no' and split == 'yes':
             f2 = open(f'oplsaaff.itp')
             txt = f2.read()        
             f2.close()
             atomtype_dict=self.get_atomtypes(txt)
             atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','mass','q','Dummy_Bead','Sigma','Epsilon']
+            atom_types.columns=['name','type','','mass','q','Dummy_Bead','Sigma','Epsilon']
         else:
             atomtype_dict=self.get_atomtypes(txt)
             atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','mass','q','Dummy_Bead','Sigma','Epsilon']
+            atom_types.columns=['name','type','','mass','q','Dummy_Bead','Sigma','Epsilon']
           
         qilist=[]
         atom_counts=0
@@ -140,7 +69,7 @@ class Oniom_Generation(object):
         qmax=max(qilist)
         return qmax,Total_Atoms
 ################################################################################
-    def QM_Inputs(self,Solute,Oniom,dummy,split,qr1,qr2,qr3,qmax):
+    def QM_Inputs(self,Solute,Oniom,dummy,split,qr1,qr2,qr3):
         txt=Solute
         atom_dict=self.get_atoms(txt)
         atoms=pd.DataFrame(atom_dict)
@@ -386,11 +315,12 @@ class Oniom_Generation(object):
                     data = line.split()
                     atomtype_dicts = {'name': data[0],
                                  'bond_type': data[1],
-                                 'mass': float(data[2]),
-                                 'charge': float(data[3]),
-                                 'ptype': data[4],
-                                 'sigma': float(data[5]),
-                                 'epsilon': float(data[6])}
+                                 'atomic_number': int(data[2]), #Dunno why our script doesn't pick this up or flag it as missing?
+                                 'mass': float(data[3]),
+                                 'charge': float(data[4]),
+                                 'ptype': data[5],
+                                 'sigma': float(data[6]),
+                                 'epsilon': float(data[7])}
                     atomtype_dict.append(atomtype_dicts)
         return atomtype_dict
           
@@ -418,141 +348,6 @@ class Oniom_Generation(object):
     def get_included_files(self,txt):
         itp_list = re.findall(r'^#include\s+"([./\w]+)" *', txt, re.MULTILINE)
         return itp_list        
-#################################################################################
-    def gro_to_gaus(self,Gro_Atom_Types):
-
-        if Gro_Atom_Types == 'OW':
-            Gaus_Atom_Types = 'O'
-            return Gaus_Atom_Types 
-        
-        elif Gro_Atom_Types == 'OH':
-            Gaus_Atom_Types = 'O'
-            return Gaus_Atom_Types 
-        
-        elif Gro_Atom_Types == 'HO':
-            Gaus_Atom_Types = 'H'
-            return Gaus_Atom_Types 
-        
-        elif Gro_Atom_Types == 'HW':
-            Gaus_Atom_Types = 'H'
-            return Gaus_Atom_Types 
-            
-        elif Gro_Atom_Types == 'NH':
-            Gaus_Atom_Types = 'N'
-            return Gaus_Atom_Types 
-            
-        elif Gro_Atom_Types == 'HN':
-            Gaus_Atom_Types = 'H'
-            return Gaus_Atom_Types 
-             
-        elif Gro_Atom_Types == 'HC':
-            Gaus_Atom_Types = 'H'
-            return Gaus_Atom_Types 
-            
-        elif Gro_Atom_Types == 'CM':
-            Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types 
-            
-        elif Gro_Atom_Types == 'CA':
-            Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types 
-            
-        elif Gro_Atom_Types == 'CB':
-            Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types 
-        
-        elif Gro_Atom_Types == 'CC':
-            Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types 
-            
-        elif Gro_Atom_Types == 'CD':
-            Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types 
-        
-        elif Gro_Atom_Types == 'CE':
-            Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types 
-        
-        elif Gro_Atom_Types == 'CF':
-            Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types 
-        
-        elif Gro_Atom_Types == 'CG':
-            Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types 
-            
-        elif Gro_Atom_Types == 'MW':
-            Gaus_Atom_Types = 'Bq'
-            return Gaus_Atom_Types 
-                
-        elif Gro_Atom_Types == 'OK':
-            Gaus_Atom_Types = 'O'
-            return Gaus_Atom_Types 
-                
-        elif Gro_Atom_Types == 'CK':
-            Gaus_Atom_Types = 'C' 
-            return Gaus_Atom_Types 
-                
-        elif Gro_Atom_Types == 'C!':
-            Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types 
-                
-        elif Gro_Atom_Types == 'C=':
-            Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types 
-                
-        elif Gro_Atom_Types == 'CT':
-            Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types 
-            
-        elif Gro_Atom_Types == 'HA':
-            Gaus_Atom_Types = 'H'
-            return Gaus_Atom_Types 
-                
-        elif Gro_Atom_Types == 'CT':
-            Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types 
-                
-        elif Gro_Atom_Types == 'CT_4':
-            Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types 
-                
-        elif Gro_Atom_Types == 'F':
-            Gaus_Atom_Types = 'F'   
-            return Gaus_Atom_Types  
-                
-        elif Gro_Atom_Types == 'Cl':
-            Gaus_Atom_Types = 'Cl'
-            return Gaus_Atom_Types 
-            
-        elif Gro_Atom_Types == 'OC':
-            Gaus_Atom_Types = 'O'
-            return Gaus_Atom_Types 
-            
-        elif Gro_Atom_Types == 'CO':
-            Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types 
-            
-        elif Gro_Atom_Types == 'C_2':
-            Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types 
-            
-        elif Gro_Atom_Types == 'O_2':
-            Gaus_Atom_Types = 'O'
-            return Gaus_Atom_Types 
-            
-        elif Gro_Atom_Types == 'NT':
-            Gaus_Atom_Types = 'N'
-            return Gaus_Atom_Types  
-            
-        elif Gro_Atom_Types == 'H':
-            Gaus_Atom_Types = 'H'
-            return Gaus_Atom_Types
-
-        elif Gro_Atom_Types == 'CN':
-            Gaus_Atom_Types = 'C'
-            return Gaus_Atom_Types
-
 #################################################################################        
     def Counting_Molecules(self,Topology,Oniom,Solvent_Molecules):
         with open(Oniom, 'a') as file:

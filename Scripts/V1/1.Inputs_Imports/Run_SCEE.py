@@ -196,12 +196,12 @@ replicas=range(3,6,1) #How many times you want to repeat your simulation, this g
 print('What temperatures (in K) would you like to run your simulations to run at? (please use 1, 2, ... format)')
 #temps=input()
 temps='298.0' #If you wanted to explore a range of temperatures, change temps to '298.0, new_value' is in Kelvin
-T_list=[temps]
+T_list=[t.strip()) for t in temps.split(',')]
 
 print('What pressures (in K) would you like to run your simulations to run at? (please use 1, 2, ... format)')
 #press=input()
 press='1.0' #Similarly if you want to explore a range of temperature change press to '1.0, new_value' is in Bar
-P_list = [press]
+P_list = [p.strip()) for p in press.split(',')]
 
 ################################################################################
 #This step will open the topology file and counts how many heavy atoms are present in the topology file

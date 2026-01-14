@@ -8,14 +8,17 @@ from subprocess import check_call
 import os
 import numpy as np
 
+import Atoms
+
+Atoms_Dict=Atoms.Atoms()
+
 ################################################################################
 ################################################################################
 ################################################################################
 class SCEE(object):
 
     def __init__(self):
-        self.runname = 'TIP4P2005'
-        self.atom_dict = {1: 'H', 6: 'C', 7:'N', 8: 'O'}        
+        self.runname = 'TIP4P2005'       
 
         #self.basis_v0 = 'aug-cc-pvtz'
         #self.method_v0 = 'b3lyp'
@@ -116,7 +119,7 @@ class SCEE(object):
             data = raw_data[-1].split('\n')
             for line in data[5:5+self.natom]:
                 row = line.split()
-                atom = self.atom_dict[int(row[1])]
+                atom = Atoms.Atom_Symbol(Atom=int(row[1]))
                 x, y, z = row[3], row[4], row[5]
                 text_str += f'{atom} {x} {y} {z}' + '\n'
             f.close()
