@@ -75,9 +75,8 @@ class Atoms(object):
         Gro_List=[]
         for n, i in enumerate(Gaus_List, start=1):
             Gro = f"{i}{n}"
-            Gro_List.append(Gro) #This may need to work a little differently for QM and MM so we are assigning different values of the MM and QM parts of a system and will need a suggestion for this
+            Gro_List.append(Gro) #This may need to work a little differently for QM and MM so we are assigning different values of the MM and QM parts of a system and will need a suggestion for this plus when like i=Ca or n>10
         
-        Heavy_Atoms=0
         Total_Atoms=0
         Dummy_List=[]
         for i in Gaus_List:
@@ -87,11 +86,10 @@ class Atoms(object):
             elif i=='Bq':
                 Dummy_List.append(1)
             else:
-                Heavy_Atoms+=1
                 Dummy_List.append(0)
             Total_Atoms+=1
             
-        return Heavy_Atoms, Total_Atoms, Gro_List, Gaus_List, Dummy_List
+        return  Gro_List, Gaus_List, Dummy_List, Total_Atoms
 ##################################################################################################
     def Atom_Symbol(self,Atom):
         atom=self.atom_dict[int(Atom)]

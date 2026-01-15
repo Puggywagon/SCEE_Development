@@ -9,30 +9,8 @@ class Oniom_Generation(object):
     def __init__(self):
         pass
 ################################################################################
-    def Calc_Heavys(self,Solute):
-        txt=Solute
-        atom_dict=self.get_atoms(txt)
-        atoms=pd.DataFrame(atom_dict)
-        atoms.columns=['id','at_type','res num','res_name','at_name','cg nr','charge','mass']
-        
-        Gros=[]
-        Masses=[]
-        for index, row in atoms.iterrows():
-            Gro=atoms.iloc[index]['at_name']
-            Mass=atoms.iloc[index]['mass']
-            Gros.append(Gro)
-            Masses.append(Mass)
-        Heavy_Atoms, Total_Atoms=Atoms.Atom_Types(Gros,Masses)
-        # We need qmax both for in the oniom generation and in the dipole moment scaling after the oniom generation step in the Run_SCEE script
-        qilist=[]
-        for index, row in atoms.iterrows():
-            qlist=atoms.iloc[index]['charge']
-            qilist.append(abs(qlist))
-        qmax=max(qilist)
-            
-        return Heavy_Atoms,Total_Atoms,qmax
-################################################################################
-    def QM_Inputs(self,Solute,Oniom,dummy,split,qr1,qr2,qr3):
+    def QM_Inputs(self,Solute,Oniom,qr1,qr2,qr3):
+        # Will need to add something that identifies what molecule is what?
         txt=Solute
         atom_dict=self.get_atoms(txt)
         atoms=pd.DataFrame(atom_dict)
@@ -49,7 +27,7 @@ class Oniom_Generation(object):
                 spicy=row['id']
             else:
                 spicy=0
-        Total_Atoms, Gro_List, Gaus_List, Dummy_List=Atoms.Atom_Types(Gros,Masses)
+        Gro_List, Gaus_List, Dummy_List,Total_Atoms=Atoms.Atom_Types(Gros,Masses)
         
         qilist=[]
         for index, row in atoms.iterrows():
@@ -65,30 +43,10 @@ class Oniom_Generation(object):
         with open(Oniom, 'a') as file:
             file.write(f'{Total_Atoms:.0f} {Central_Atom:.0f}\n')
         
-        
-        # This bit I will need a little help with. It is to do with the inconsistency of what is in the [ atomtypes ], I have seen versions with the dummy column and others without it. Variations causes errors in the atom_types dataframe. We need the [ atomtypes ] section as we need to extract sigma and epsilon from this list. So we will need some way of telling users to provide us access to those numbers ether through having an atom types section in the topology or giving us the forcefield file but this needs to be consistent... We have preassigned some of these however.
-        if dummy == 'yes' and split == 'yes':
-            f2 = open(f'oplsaaff.itp')
-            forcefield = f2.read()        
-            f2.close()
-            atomtype_dict=self.get_atomtypes(txt)
-            atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','MW','q','Dummy_Bead','Sigma','Epsilon']
-        elif dummy == 'yes' and split == 'no':
-            atomtype_dict=sel        f.get_atomtypes(txt)
-            atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','MW','q','Dummy_Bead','Sigma','Epsilon']
-        elif dummy == 'no' and split == 'yes':
-            f2 = open(f'oplsaaff.itp')
-            txt = f2.read()        
-            f2.close()
-            atomtype_dict=self.get_atomtypes(txt)
-            atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','mass','q','Dummy_Bead','Sigma','Epsilon']
-        else:
-            atomtype_dict=self.get_atomtypes(txt)
-            atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','mass','q','Dummy_Bead','Sigma','Epsilon']
+        atomtype_dict=self.get_atomtypes(txt)
+        atom_types=pd.DataFrame(atomtype_dict)
+        atom_types.columns=['name','type','mass','q','ptype','Sigma','Epsilon']
+                                  
 
         Sigma_List=[]
         Epsilon_List=[]
@@ -118,8 +76,7 @@ class Oniom_Generation(object):
                 Sigma=matching_type.iloc[0]['Sigma']
                 Epsilon=matching_type.iloc[0]['Epsilon']
                 Sigma_List.append(Sigma)
-                Epsilon_List.append(Epsilon)
-            
+                Epsilon_List.append(Epsilon)         
             
         for G,Gro,Gaus,Dummy,qi,Sigma,Epsilon in zip(Gros,Gro_List,Gaus_List,Dummy_List,qilist,Sigma_List,Epsilon_List):
             wi=qi/qmax            
@@ -154,8 +111,12 @@ class Oniom_Generation(object):
         #Note we are going to have issues for when we start adding Cl, Na etc due to the formating above...                
         with open(Oniom, 'a') as file:
             file.write("\n")
+       
+            
+        return Total_Atoms,qmax
 ################################################################################
-    def MM_Inputs(self,solvent,Oniom,split,qr1,qr2,qr3,qmax):
+    def MM_Inputs(self,solvent,Oniom,qr1,qr2,qr3):
+        # Will need to add something that identifies what molecule is what?
         txt=solvent
         atom_dict=self.get_atoms(txt)
         atoms=pd.DataFrame(atom_dict)
@@ -172,7 +133,7 @@ class Oniom_Generation(object):
                 spicy=row['id']
             else:
                 spicy=0
-        Total_Atoms, Gro_List, Gaus_List=Atoms.Atom_Types(Gros,Masses)
+        Gro_List, Gaus_List, Dummy_List, Total_Atoms=Atoms.Atom_Types(Gros,Masses)
         
         qilist=[]
         for index, row in atoms.iterrows():
@@ -188,19 +149,9 @@ class Oniom_Generation(object):
         with open(Oniom, 'a') as file:
             file.write(f'{Total_Atoms:.0f} {Central_Atom:.0f}\n')
             
-            
-         # Unless we tell users to include sigma and epsilon in the [ atoms ] we still need a way of extracting these for the molecules? I dunno if that is something that works for gromacs. I also dunno how we even going about generalising this for other software.
-        if split == 'yes':
-            f2 = open(f'oplsaaff.itp')
-            txt = f2.read()        
-            f2.close()
-            atomtype_dict=self.get_atomtypes(txt)
-            atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','mass','q','ptype','Sigma','Epsilon']
-        else:
-            atomtype_dict=self.get_atomtypes(txt)
-            atom_types=pd.DataFrame(atomtype_dict)
-            atom_types.columns=['name','type','mass','q','ptype','Sigma','Epsilon']
+        atomtype_dict=self.get_atomtypes(txt)
+        atom_types=pd.DataFrame(atomtype_dict)
+        atom_types.columns=['name','type','mass','q','ptype','Sigma','Epsilon']
                                   
         Sigma_List=[]
         Epsilon_List=[]
@@ -231,7 +182,6 @@ class Oniom_Generation(object):
                 Epsilon=matching_type.iloc[0]['Epsilon']
                 Sigma_List.append(Sigma)
                 Epsilon_List.append(Epsilon)
-            
             
         for G,Gro,Gaus,qi,Sigma,Epsilon in zip(Gros,Gro_List,Gaus_List,qilist,Sigma_List,Epsilon_List):
             wi=qi/qmax            
@@ -277,7 +227,7 @@ class Oniom_Generation(object):
                     data = line.split()
                     atomtype_dicts = {'name': data[0],
                                  'bond_type': data[1],
-                                 'atomic_number': int(data[2]), #Dunno why our script doesn't pick this up or flag it as missing?
+                                 'atomic_number': int(data[2]), #Dunno why our script doesn't pick column up?
                                  'mass': float(data[3]),
                                  'charge': float(data[4]),
                                  'ptype': data[5],
@@ -285,7 +235,6 @@ class Oniom_Generation(object):
                                  'epsilon': float(data[7])}
                     atomtype_dict.append(atomtype_dicts)
         return atomtype_dict
-          
 #################################################################################
     def get_atoms(self,txt):
         tmp = re.findall(r'\[ *atoms *\] *\n+(.*?)^\s*$', txt, flags= re.MULTILINE | re.DOTALL)

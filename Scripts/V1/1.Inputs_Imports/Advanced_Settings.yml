@@ -1,0 +1,22 @@
+# =================================================
+# Advanced settings
+# Used as defaults unless overridden
+# =================================================
+
+configuration:
+  box_length_nm: 6.2        # Length of the simulation box used when no gro is provided or when building a gro
+  cluster_radius_nm: 2.8    # Radius of the cluster used in dipole calculations
+                            # Minimum recommended value is ~2.5 nm
+---
+sampling:
+  n_configurations: 200    # Number of configurations extracted from MD
+                            # Extracted every 20 ps after 1 ns
+                            # Minimum ~150 configurations required for convergence
+                            # May need option to include configurations outside fitting step
+---
+electrostatics:
+  charge_scaling:
+    qr1: 1.0               # Scaling factor for charge set 1
+    qr2: 1.35              # Scaling factor for charge set 2
+    qr3: 1.7               # Scaling factor for charge set 3
+

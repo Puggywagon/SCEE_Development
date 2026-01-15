@@ -1,0 +1,36 @@
+#=================================================
+# Basic Information # Please use this format if you have already built a simulation box
+#=================================================
+# State Point Information
+#=================================================
+Temperature : [] #Temperature in K, can be given as a list like [T1,T2,T3]
+Pressure : [] #Pressure in Bar, can be given as a list like [T1,T2,T3]
+Replicas :  # Please give the number of replicas you would like the script to perform as a number
+#=================================================
+# Experimental Information about your system
+#=================================================
+Gas_Dip: # Please give us the gas phase of the molecule you are investigating
+Di_Const: # Please give us the experimental dielectric constant of the molecule you are investigating
+Ref_Ind: # Please give us the refractive index of the molecule you are investigating
+sol_keyword: #These can be obtained on the SCRF Website # Will need some guidance on what to do when this isn't available?
+#=================================================
+# Simulation Files #Need to figure out how to do this with 
+#=================================================
+Topology_File:  #Please add the topology files .top
+solute: #What is the central molecule you are studying
+solvent:  #What is the MM layer molecules even if this is the same as the solute
+Gro_File:  #Coordinate file in .gro
+#=================================================
+# System Information
+#=================================================
+g09root:  # where is your gaussian software
+GAUSS_SCRDIR :  #Where is your gaussian scratch folder
+max_jobs: #How many jobs can you run at nproc=8
+# Not Sure this if we should add Gromacs location here too?
+#=================================================
+
+
+
+
+
+
