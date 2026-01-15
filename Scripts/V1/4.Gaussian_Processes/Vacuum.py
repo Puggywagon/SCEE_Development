@@ -39,7 +39,7 @@ class Vacuum(object):
 
 ################################################################################
 ################################################################################
-    def init_v0(self,system_title,sol_keyword, workdir='./'):
+    def init(self,system_title,sol_keyword, workdir='./'):
         dat_atoms,dat_xs,dat_ys,dat_zs=self.dat_generation.gro_to_dat()
         
         text = f'%chk={system_title}_vacuum.chk\n'

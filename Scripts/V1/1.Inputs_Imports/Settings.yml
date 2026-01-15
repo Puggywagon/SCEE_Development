@@ -1,0 +1,71 @@
+#=================================================
+# User settings
+#=================================================
+User_Settings:
+    State_Conditions:
+        Temperature: [] #Temperature in K, can be given as a list like [T1,T2,T3]
+        Pressure: [] #Pressure in Bar, can be given as a list like [T1,T2,T3]
+        Replicas: null  # Please give the number of replicas you would like the script to perform as a number
+        Gas_Dip: null # Please give us the gas phase of the molecule you are investigating Not sure where to put this when mixture
+        Di_Const: null # Please give us the experimental dielectric constant of the molecule you are investigating Not sure where to put this when mixture
+        Ref_Ind: null # Please give us the refractive index of the molecule you are investigating Not sure where to put this when mixture
+        sol_keyword: null #These can be obtained on the SCRF Website # Will need some guidance on what to do when this isn't available? Not sure where to put this when mixture
+        g09root:  null # where is your gaussian software
+        GAUSS_SCRDIR:  null #Where is your gaussian scratch folder
+        max_jobs: null #How many jobs can you run at nproc=8
+        # Not Sure this if we should add Gromacs location here too?
+        
+    Mode: Yes_Gro # Options: Yes_Gro, No_Gro, Build_Gro
+    Mixture_Loop: No # Options: Yes, No
+    
+    Yes_Gro:
+        Gro_File: null # as a .gro
+        Topology_File: null # as a .top
+        solvent:  null # What is the MM layer molecules even if this is the same as the solute
+        Mixture_Settings:
+            solute:  null # What is the central molecule you are studying
+    No_Gro:
+        Sol_Gro_File: null # as a .gro
+        Topology_File: null # as a .top 
+        solvent:  null # What is the MM layer molecules even if this is the same as the solute
+        density: null # Experimental Density in g/cm^3
+        mol_mass: null # Molar Mass of Molecule g/mol
+        solresnametop: null # What is the res name used for the solvent in the top file
+        Mixture_Settings:
+            Solute_Gro_File: null # as a .gro
+            Solute_Topology_File: null # as a .top 
+            solute:  null # What is the central molecule you are studying
+            resnametop: null # What is the res name used for the solvent in the top file
+    Build_Gro:
+        Solvent_Topology_File: null # as a .top
+        density: null # Experimental Density in g/cm^3
+        mol_mass: null # Molar Mass of Molecule g/mol
+        solvent:  null # What is the MM layer molecules even if this is the same as the solute and will use this for naming your gro files 
+        solresnametop: null # What is the res name used for the solvent in the top file
+        solresname: null # What is the residue name you would like us to use in your solvent gro file
+        solmol: null # What is the smile string got your solvent molecule
+        Mixture_Settings:
+            Solute_Topology_File: null # as a .top 
+            solute: null # What is the central molecule you are studying and will use this for naming your gro files 
+            resname: null # What is the residue name you would like us to use in your solute gro file
+            mol: null # What is the smile string got your solute molecule
+            resnametop: null # What is the res name used for the solvent in the top file
+
+#=================================================
+# Advanced settings - Do not modify if unsure
+#=================================================
+Advanced_Settings:         
+    configuration:
+        box_length_nm: 6.2        # Length of the simulation box used when no gro is provided or when building a gro
+        cluster_radius_nm: 2.8    # Radius of the cluster used in dipole calculations
+                                  # Minimum recommended value is ~2.5 nm
+    sampling:
+        n_configurations: 200     # Number of configurations extracted from MD
+                                  # Extracted every 20 ps after 1 ns
+                                  # Minimum ~150 configurations required for convergence
+                                  # May need option to include configurations outside fitting step
+    electrostatics:
+        charge_scaling:
+            qr1: 1.0              # Scaling factor for charge set 1
+            qr2: 1.35             # Scaling factor for charge set 2
+            qr3: 1.7              # Scaling factor for charge set 3    

@@ -11,11 +11,10 @@ from dat_generation import Dat_Generation
 import Atoms
 
 Atoms_Dict=Atoms.Atoms()
-
 ################################################################################
 ################################################################################
 ################################################################################
-class PCM1(object):
+class Vacuum(object):
 
     def __init__(self):
         self.runname = 'TIP4P2005'
@@ -34,47 +33,43 @@ class PCM1(object):
         self.method_v1 = 'blyp'
         self.natom = 6
 
-        self.rundir = './opt_b3lypaug-cc-pvtz_spb3lyp/'
+        self.rundir='./opt-test_vacuum'
         self.g09root='/home/zoe/Software/Gaussian/g09_pgi'
         self.GAUSS_SCRDIR = '/home/zoe/Research/Gaussian/scratch'
         self.dat_generation=Dat_Generation(filename='nvt_vacuum2.gro')
+
 ################################################################################
 ################################################################################
-    def init(self,sol_keyword,exp_diconst, workdir='./'):
+    def init_v0(self,system_title,sol_keyword, workdir='./'):
         dat_atoms,dat_xs,dat_ys,dat_zs=self.dat_generation.gro_to_dat()
-                
-        text = f'%chk=PCM1.chk\n'
+        
+        text = f'%chk={system_title}_vacuum.chk\n'
         text += f'%nprocshared={self.nproc}\n'
         text += f'%mem={self.mem}\n'
-        text += f'#p b3lyp/cc-pvtz gfprint scrf=(pcm,solvent={sol_keyword},read)' + '\n'
-        text += '# nosymm pop=full density=current scf=(verytight)\n'
+        text += f'#p {self.method_v0}/{self.basis_v0} gfprint fopt=tight' + '\n'
+        text += '# nosymm pop=full scf=(verytight) density=current\n'
         text += '# integral=(ultrafine,NoXCTest)\n\n'
         text += f'{sol_keyword}\n\n'
-        text += '0 1 \n'
-        
+        text += '0 1\n'
         for dat_atom,dat_x,dat_y,dat_z in zip(dat_atoms,dat_xs,dat_ys,dat_zs):
             text += f'{dat_atom:s} {dat_x:9.4f} {dat_y:8.4f} {dat_z:8.4f}\n'
-        text +='\n'
-        text += f'eps={exp_diconst}\n\n'
-
+        text += '\n'  
         text  += f'--Link1--\n'
-        text += f'%chk=PCM1.chk\n'
+        text += f'%chk={system_title}_vacuum.chk\n'
         text += f'%nprocshared={self.nproc}\n'
         text += f'%mem={self.mem}\n'
-        text += f'#p b3lyp/aug-cc-pvtz gfprint scrf=(pcm,solvent={sol_keyword},read)' + '\n'
-        text += '# nosymm pop=full scf=(verytight) density=current' + '\n'
+        text += f'#p {self.method_v0}/{self.basis_v0} gfprint fopt=tight' + '\n'
+        text += '# nosymm pop=full scf=(verytight) density=current\n'
         text += '# integral=(ultrafine,NoXCTest) geom=checkpoint\n\n'
         text += f'{sol_keyword}\n\n'
-        text += '0 1 \n\n'
-        text += f'eps={exp_diconst}\n\n\n\n'
+        text += '0 1 \n\n\n\n'
         
         if (not os.path.isdir(workdir + self.rundir)):
             os.mkdir(workdir + self.rundir)
-        
-        f = open(workdir + self.rundir+'PCM1.dat', 'w')
+            
+        f = open(workdir + self.rundir+'nvt_vacuum.dat', 'w')
         f.write(text)
         f.close()
-
 ################################################################################
     def run_gaussian(self, step=0):
 
@@ -90,6 +85,7 @@ class PCM1(object):
         text += 'for datfile in $(ls *.dat); do\n'
         text += '  outfile=${datfile%.dat}.out\n'
         text += '  echo "Preparing $datfile -> $outfile"\n'
+        # combined heavy-job throttle: g09 + mdrun
         text += '  while true; do\n'
         text += '      g09c=$(pgrep -c g09 2>/dev/null)\n'
         text += '      mdc=$(pgrep -c mdrun 2>/dev/null)\n'
@@ -111,22 +107,12 @@ class PCM1(object):
         os.chmod(f'run_{step_str}.sh', 0o755)
         cmd = ['bash', f'run_{step_str}.sh']
         check_call(cmd)
-        
 
 ################################################################################
     def read_multipoles(self, filename):
-#        outfile = '../TIP4P/tmp/opt_b3lypaug-cc-pvtz_spb3lyp/TIP4P2005_c1_q1_v1.out'
-#        outfile = '../tmp/opt-test/wat_SPCE_oniom_c1_q1_v1.out'
-#        filename = './opt-orig/TIP4P2005_c14_q1_v1.out'
         f = open(filename, 'r')
         text_file = f.read()
         f.close()
-    
-#        re_str = ' Dipole moment \(field-independent basis, Debye\):(?:.*\n){17}'
-#        raw_data = re.findall(re_str, text_file, re.M)
-#        data = raw_data[-1].split('\n')
-#        for line in data:
-#            print(line)
 
         multipole = {}
             
@@ -177,17 +163,16 @@ class PCM1(object):
 ################################################################################
     def get_multipole_statistics(self):
 
-        filename = self.rundir + f'PCM1.out'
+        filename = self.rundir + f'nvt_vacuum.out'
         multipole = self.read_multipoles(filename)
         dipole=multipole['total dipole']
     
         print(multipole['total dipole'])
         data_dict={'dipole_l': [dipole],'dipole_m': [dipole],'dipole_h': [dipole]} 
-        df2 = pd.DataFrame(data_dict)
-        print(df2)
-        return df2
+        df4 = pd.DataFrame(data_dict)
 
-            
+        return df4
+
 ################################################################################
 ################################################################################
 ################################################################################

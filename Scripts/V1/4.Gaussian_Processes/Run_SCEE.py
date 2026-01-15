@@ -29,10 +29,6 @@ ratio=Model_Dipole / qmax
 num1=qr1*ratio*qmax
 num2=qr2*ratio*qmax
 num3=qr3*ratio*qmax
-Molecule.natom=Total_Atoms
-Vacuum.natom=Total_Atoms
-PCM1.natom=Total_Atoms
-PCM2.natom=Total_Atoms
 ################################################################################  
 # This step calculates the dipole moment of the vacuum using the output of the presim steps using a single molecule
 Vacuum.g09root='/home/zoe/Software/Gaussian/g09_pgi'

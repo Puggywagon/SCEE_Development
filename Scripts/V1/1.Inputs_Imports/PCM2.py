@@ -11,11 +11,10 @@ from dat_generation import Dat_Generation
 import Atoms
 
 Atoms_Dict=Atoms.Atoms()
-
 ################################################################################
 ################################################################################
 ################################################################################
-class PCM1(object):
+class PCM2(object):
 
     def __init__(self):
         self.runname = 'TIP4P2005'
@@ -36,29 +35,29 @@ class PCM1(object):
 
         self.rundir = './opt_b3lypaug-cc-pvtz_spb3lyp/'
         self.g09root='/home/zoe/Software/Gaussian/g09_pgi'
-        self.GAUSS_SCRDIR = '/home/zoe/Research/Gaussian/scratch'
+        self.GAUSS_SCRDIR = '/home/zoe/Research/Gaussian/scratch' 
         self.dat_generation=Dat_Generation(filename='nvt_vacuum2.gro')
 ################################################################################
 ################################################################################
-    def init(self,sol_keyword,exp_diconst, workdir='./'):
+    def init(self,system_title,sol_keyword,cal_diconst, workdir='./'):
         dat_atoms,dat_xs,dat_ys,dat_zs=self.dat_generation.gro_to_dat()
-                
-        text = f'%chk=PCM1.chk\n'
+
+        
+        text = f'%chk={system_title}_pcm2.chk' + '\n'        
         text += f'%nprocshared={self.nproc}\n'
         text += f'%mem={self.mem}\n'
         text += f'#p b3lyp/cc-pvtz gfprint scrf=(pcm,solvent={sol_keyword},read)' + '\n'
-        text += '# nosymm pop=full density=current scf=(verytight)\n'
+        text += '# nosymm pop=full scf=(verytight) density=current\n'
         text += '# integral=(ultrafine,NoXCTest)\n\n'
         text += f'{sol_keyword}\n\n'
         text += '0 1 \n'
-        
         for dat_atom,dat_x,dat_y,dat_z in zip(dat_atoms,dat_xs,dat_ys,dat_zs):
             text += f'{dat_atom:s} {dat_x:9.4f} {dat_y:8.4f} {dat_z:8.4f}\n'
-        text +='\n'
-        text += f'eps={exp_diconst}\n\n'
-
-        text  += f'--Link1--\n'
-        text += f'%chk=PCM1.chk\n'
+        text += '\n'
+        text += f'eps={cal_diconst} \n\n'
+        
+        text  += f'\n--Link1--\n'                    
+        text += f'%chk={system_title}_pcm2.chk' + '\n'   
         text += f'%nprocshared={self.nproc}\n'
         text += f'%mem={self.mem}\n'
         text += f'#p b3lyp/aug-cc-pvtz gfprint scrf=(pcm,solvent={sol_keyword},read)' + '\n'
@@ -66,15 +65,14 @@ class PCM1(object):
         text += '# integral=(ultrafine,NoXCTest) geom=checkpoint\n\n'
         text += f'{sol_keyword}\n\n'
         text += '0 1 \n\n'
-        text += f'eps={exp_diconst}\n\n\n\n'
-        
+        text += f'eps={cal_diconst}\n\n\n\n' 
+               
         if (not os.path.isdir(workdir + self.rundir)):
             os.mkdir(workdir + self.rundir)
         
-        f = open(workdir + self.rundir+'PCM1.dat', 'w')
+        f = open(workdir + self.rundir+'PCM2.dat', 'w')
         f.write(text)
         f.close()
-
 ################################################################################
     def run_gaussian(self, step=0):
 
@@ -177,15 +175,15 @@ class PCM1(object):
 ################################################################################
     def get_multipole_statistics(self):
 
-        filename = self.rundir + f'PCM1.out'
+        filename = self.rundir + f'PCM2.out'
         multipole = self.read_multipoles(filename)
         dipole=multipole['total dipole']
     
         print(multipole['total dipole'])
         data_dict={'dipole_l': [dipole],'dipole_m': [dipole],'dipole_h': [dipole]} 
-        df2 = pd.DataFrame(data_dict)
-        print(df2)
-        return df2
+        df3 = pd.DataFrame(data_dict)
+        print(df3)
+        return df3
 
             
 ################################################################################

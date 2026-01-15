@@ -39,11 +39,11 @@ class PCM2(object):
         self.dat_generation=Dat_Generation(filename='nvt_vacuum2.gro')
 ################################################################################
 ################################################################################
-    def init_v0(self,system_title,sol_keyword,cal_diconst, workdir='./'):
+    def init_v0(self,sol_keyword,cal_diconst, workdir='./'):
         dat_atoms,dat_xs,dat_ys,dat_zs=self.dat_generation.gro_to_dat()
 
         
-        text = f'%chk={system_title}_pcm2.chk' + '\n'        
+        text = f'%chk=PCM2.chk' + '\n'        
         text += f'%nprocshared={self.nproc}\n'
         text += f'%mem={self.mem}\n'
         text += f'#p b3lyp/cc-pvtz gfprint scrf=(pcm,solvent={sol_keyword},read)' + '\n'
@@ -57,7 +57,7 @@ class PCM2(object):
         text += f'eps={cal_diconst} \n\n'
         
         text  += f'\n--Link1--\n'                    
-        text += f'%chk={system_title}_pcm2.chk' + '\n'   
+        text += f'%chk=PCM2.chk' + '\n'   
         text += f'%nprocshared={self.nproc}\n'
         text += f'%mem={self.mem}\n'
         text += f'#p b3lyp/aug-cc-pvtz gfprint scrf=(pcm,solvent={sol_keyword},read)' + '\n'

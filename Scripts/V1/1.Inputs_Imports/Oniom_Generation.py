@@ -9,9 +9,9 @@ class Oniom_Generation(object):
     def __init__(self):
         pass
 ################################################################################
-    def QM_Inputs(self,Topology_File,Oniom,qr1,qr2,qr3):
+    def QM_Inputs(self,Solute,Oniom,qr1,qr2,qr3):
         # Will need to add something that identifies what molecule is what?
-        txt=Topology_File
+        txt=Solute
         atom_dict=self.get_atoms(txt)
         atoms=pd.DataFrame(atom_dict)
         atoms.columns=['id','at_type','res num','res_name','at_name','cg nr','charge','mass']
@@ -115,9 +115,9 @@ class Oniom_Generation(object):
             
         return Total_Atoms,qmax
 ################################################################################
-    def MM_Inputs(self,Topology_File,Oniom,qr1,qr2,qr3):
+    def MM_Inputs(self,solvent,Oniom,qr1,qr2,qr3):
         # Will need to add something that identifies what molecule is what?
-        txt=Topology_File
+        txt=solvent
         atom_dict=self.get_atoms(txt)
         atoms=pd.DataFrame(atom_dict)
         atoms.columns=['id','at_type','res num','res_name','at_name','cg nr','charge','mass'] 
@@ -221,6 +221,7 @@ class Oniom_Generation(object):
         tmp = re.findall(r'\[ *atomtypes *\] *\n+(.*?)^\s*$', txt, flags= re.MULTILINE | re.DOTALL)    
         if (len(tmp) > 0):
             lines = tmp[0].split('\n')
+            print(lines[0])
             for line in tmp[0].split('\n'):
                 if (len(line)>0 and line[0] != ';'):
                     data = line.split()
@@ -240,6 +241,7 @@ class Oniom_Generation(object):
         atom_dict = []
         if (len(tmp) > 0):
             lines = tmp[0].split('\n')
+            print(lines[0])
             for line in tmp[0].split('\n'):
                 if (len(line)>0 and line[0] != ';'):
                     data = line.split()
@@ -262,9 +264,9 @@ class Oniom_Generation(object):
         with open(Oniom, 'a') as file:
                 file.write(f'{Solvent_Molecules:.0f}\n')
 ################################################################################
-    def Gen_File(self,Oniom,Configurations, Solvent, Cut_Off_Radius):
+    def Gen_File(self,Oniom,Configurations, system_title, Cut_Off_Radius):
         with open(Oniom, 'w') as file:
             file.write(f'{Configurations:.0f}\n')
-            file.write(f'{Solvent}\n')
+            file.write(f'{system_title}\n')
             file.write(f'{Cut_Off_Radius:.1f}\n\n')
 ################################################################################

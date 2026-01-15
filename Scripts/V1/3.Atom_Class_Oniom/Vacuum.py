@@ -40,10 +40,10 @@ class Vacuum(object):
 
 ################################################################################
 ################################################################################
-    def init_v0(self,system_title,sol_keyword, workdir='./'):
+    def init_v0(self,sol_keyword, workdir='./'):
         dat_atoms,dat_xs,dat_ys,dat_zs=self.dat_generation.gro_to_dat()
         
-        text = f'%chk={system_title}_vacuum.chk\n'
+        text = f'%chk=Vacuum.chk\n'
         text += f'%nprocshared={self.nproc}\n'
         text += f'%mem={self.mem}\n'
         text += f'#p {self.method_v0}/{self.basis_v0} gfprint fopt=tight' + '\n'
@@ -54,20 +54,11 @@ class Vacuum(object):
         for dat_atom,dat_x,dat_y,dat_z in zip(dat_atoms,dat_xs,dat_ys,dat_zs):
             text += f'{dat_atom:s} {dat_x:9.4f} {dat_y:8.4f} {dat_z:8.4f}\n'
         text += '\n'  
-        text  += f'--Link1--\n'
-        text += f'%chk={system_title}_vacuum.chk\n'
-        text += f'%nprocshared={self.nproc}\n'
-        text += f'%mem={self.mem}\n'
-        text += f'#p {self.method_v0}/{self.basis_v0} gfprint fopt=tight' + '\n'
-        text += '# nosymm pop=full scf=(verytight) density=current\n'
-        text += '# integral=(ultrafine,NoXCTest) geom=checkpoint\n\n'
-        text += f'{sol_keyword}\n\n'
-        text += '0 1 \n\n\n\n'
         
         if (not os.path.isdir(workdir + self.rundir)):
             os.mkdir(workdir + self.rundir)
             
-        f = open(workdir + self.rundir+'nvt_vacuum.dat', 'w')
+        f = open(workdir + self.rundir+'Vacuum.dat', 'w')
         f.write(text)
         f.close()
 ################################################################################
@@ -163,7 +154,7 @@ class Vacuum(object):
 ################################################################################
     def get_multipole_statistics(self):
 
-        filename = self.rundir + f'nvt_vacuum.out'
+        filename = self.rundir + f'Vacuum.out'
         multipole = self.read_multipoles(filename)
         dipole=multipole['total dipole']
     

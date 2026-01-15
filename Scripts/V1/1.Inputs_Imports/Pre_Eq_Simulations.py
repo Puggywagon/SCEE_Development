@@ -45,60 +45,63 @@ class Pre_Eq_Simulations(object):
 
             time.sleep(10)
 ################################################################################
-    def Pre_Eq_Solute(self,central,L):
+    def Pre_Eq_Solute(self,Gro_File,Topology_File,L):
         L=L+1.7
         print('performing molecular dynamics')
-        gromacs.check(c=f'{central}_AA.gro')
-        gromacs.editconf(f=f'{central}_AA.gro', box=[L,L,L], o=f'{central}_AA.gro')
-        gromacs.check(c=f'{central}_AA.gro')
+        gromacs.check(c=Gro_File,)
+        gromacs.editconf(f=Gro_File,, box=[L,L,L], o=Gro_File,)
+        gromacs.check(c=Gro_File,)
         
         # gmx grompp -f md.mdp -c argon_start.pdb -p argon.top
-        gromacs.grompp(f='minim_vacuum.mdp', c=f'{central}_AA.gro', p=f'{central}_AA.top', o='em.tpr', maxwarn=2)
+        gromacs.grompp(f='minim_vacuum.mdp', c=Gro_File, p=Topology_File, o='em.tpr', maxwarn=2)
     
         # gmx mdrun -s topol.tpr -v -c argon_1ns.gro -nice 0
         self._wait_for_md_slot()
         gromacs.mdrun('-v', deffnm='em', ntmpi=self.ntmpi, ntomp=self.ntomp, pin=self.pin, pinoffset=self.pinoffset)
         
         # gmx grompp -f md.mdp -c argon_start.pdb -p argon.top
-        gromacs.grompp(f='nvt_vacuum.mdp', c='em.gro', p=f'{central}_AA.top', o='nvt_vacuum2.tpr', maxwarn=2)
+        gromacs.grompp(f='nvt_vacuum.mdp', c='em.gro', p=Topology_File, o='nvt_vacuum2.tpr', maxwarn=2)
     
         # gmx mdrun -s topol.tpr -v -c argon_1ns.gro -nice 0
         self._wait_for_md_slot()
         gromacs.mdrun('-v',deffnm='nvt_vacuum2', ntmpi=self.ntmpi, ntomp=self.ntomp, pin=self.pin, pinoffset=self.pinoffset)
         
 ################################################################################
-    def insert_Molecules(self,central,solvent,system_title,initial_molecules):
+    def insert_Molecules(self,Gro_File,initial_molecules):
         Solute=f'nvt_vacuum2.gro'
-        Solvent=f'{solvent}_UA.gro'
+        Solvent=Gro_File
         gromacs.insert_molecules(f=Solute,ci=Solvent, nmol=f'{initial_molecules}', o='out.gro')
 ################################################################################
-    def Write_to_top(self,system_title,initial_molecules,solresnametop):
-        with open(f'{system_title}.top', 'a') as file:
+    def Write_to_top(self,Topology_File,initial_molecules,solresnametop):
+        with open(Topology_File, 'a') as file:
             file.write(f'{solresnametop}            {initial_molecules}\n')
 ################################################################################
-    def Pre_Eq_System(self,system_title):
+    def Pre_Eq_System(self,Topology_File):
         # gmx grompp -f md.mdp -c argon_start.pdb -p argon.top
-        gromacs.grompp(f='minim.mdp', c='out.gro',p=f'{system_title}.top', o='em1.tpr', maxwarn=2)
+        gromacs.grompp(f='minim.mdp', c='out.gro',p=Topology_File, o='em1.tpr', maxwarn=2)
     
         # gmx mdrun -s topol.tpr -v -c argon_1ns.gro -nice 0
         self._wait_for_md_slot()
         gromacs.mdrun('-v', deffnm='em1', ntmpi=self.ntmpi, ntomp=self.ntomp, pin=self.pin, pinoffset=self.pinoffset)
         
         # gmx grompp -f md.mdp -c argon_start.pdb -p argon.top
-        gromacs.grompp(f='nvt.mdp', c='em1.gro', p=f'{system_title}.top', o=f'nvt_eq.tpr', maxwarn=2)
+        gromacs.grompp(f='nvt.mdp', c='em1.gro', p=Topology_File, o=f'nvt_eq.tpr', maxwarn=2)
     
         # gmx mdrun -s topol.tpr -v -c argon_1ns.gro -nice 0
         self._wait_for_md_slot()
         gromacs.mdrun('-v', deffnm=f'nvt_eq', ntmpi=self.ntmpi, ntomp=self.ntomp, pin=self.pin, pinoffset=self.pinoffset)     
         
         # gmx grompp -f md.mdp -c argon_start.pdb -p argon.top
-        gromacs.grompp(f='npt.mdp', c='nvt_eq.gro', p=f'{system_title}.top', o=f'{system_title}.tpr', maxwarn=2)
+        gromacs.grompp(f='npt.mdp', c='nvt_eq.gro', p=Topology_File, o=f'system.tpr', maxwarn=2)
     
         # gmx mdrun -s topol.tpr -v -c argon_1ns.gro -nice 0
         self._wait_for_md_slot()
-        gromacs.mdrun('-v', deffnm=f'{system_title}', ntmpi=self.ntmpi, ntomp=self.ntomp, pin=self.pin, pinoffset=self.pinoffset)
+        gromacs.mdrun('-v', deffnm=f'system', ntmpi=self.ntmpi, ntomp=self.ntomp, pin=self.pin, pinoffset=self.pinoffset)
+        
+        System_Gro='.gro'
+        return System_Gro
 ################################################################################
-    def get_dipole_model(self):
+    def get_dipole_model(self): # Think we move this one and the next one into a different section in the script. Maybe we combine the MD and SCEE loops so that it is all happening in one replica folder?
         gromacs.environment.flags['capture_output'] = True
         input_str = '0\n'
         tmp = gromacs.tools.Dipoles(f=f'nvt_vacuum2',
@@ -115,11 +118,11 @@ class Pre_Eq_Simulations(object):
         dipole_model = float(dipole_line.split()[2])  # Extract the numerical value
         return dipole_model
 ######################################################
-    def get_dipole_model_liquid(self,system_title):
+    def get_dipole_model_liquid(self): # Add in 
         gromacs.environment.flags['capture_output'] = True
         input_str = '0\n'
-        tmp = gromacs.tools.Dipoles(f=f'Simulations/replica_2/298.0K/1.0Bar/{system_title}_QMMM_md3.trr',
-                                s=f'Simulations/replica_2/298.0K/1.0Bar/{system_title}_QMMM_md3.tpr',
+        tmp = gromacs.tools.Dipoles(f=f'Pure_QMMM_md3.trr',
+                                s=f'Pure_QMMM_md3.tpr',
                                 input=input_str)
         chk, dipole_output, stderr = tmp.run()
 
@@ -130,5 +133,8 @@ class Pre_Eq_Simulations(object):
         dipole_lines = dipole_output.splitlines()  # Split text into lines
         dipole_line = dipole_lines[8]  # Assuming epsilon is on the last line
         Model_Dipole = float(dipole_line.split()[2])  # Extract the numerical value
-        return Model_Dipole
+        epsilon_line = dipole_lines[-1]  # Assuming epsilon is on the last line
+        epsilon = float(epsilon_line.split()[2])  # Extract the numerical value
+        
+        return Model_Dipole, Epsilon
 ######################################################
