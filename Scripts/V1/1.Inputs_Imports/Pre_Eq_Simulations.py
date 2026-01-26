@@ -97,9 +97,7 @@ class Pre_Eq_Simulations(object):
         # gmx mdrun -s topol.tpr -v -c argon_1ns.gro -nice 0
         self._wait_for_md_slot()
         gromacs.mdrun('-v', deffnm=f'system', ntmpi=self.ntmpi, ntomp=self.ntomp, pin=self.pin, pinoffset=self.pinoffset)
-        
-        System_Gro='.gro'
-        return System_Gro
+
 ################################################################################
     def get_dipole_model(self): # Think we move this one and the next one into a different section in the script. Maybe we combine the MD and SCEE loops so that it is all happening in one replica folder?
         gromacs.environment.flags['capture_output'] = True

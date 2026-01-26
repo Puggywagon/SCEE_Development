@@ -23,6 +23,10 @@ Oniom_Generation=Oniom_Generation.Oniom_Generation()
 #Note the split is for when topology files are split like how ours are so we can make sure we include the ;files
 #Really think this area is going to need reworked a lot
 
+f = open(Topology_File)
+Topology = f.read()
+f.close()
+
 Cut_Off_Radius=2.8
 Oniom='oniom.inp'
 solvent_molecules=initial_molecules

@@ -39,9 +39,8 @@ class PCM2(object):
         self.dat_generation=Dat_Generation(filename='nvt_vacuum2.gro')
 ################################################################################
 ################################################################################
-    def init_v0(self,sol_keyword,cal_diconst, workdir='./'):
+    def init(self,sol_keyword,cal_diconst, workdir='./'):
         dat_atoms,dat_xs,dat_ys,dat_zs=self.dat_generation.gro_to_dat()
-
         
         text = f'%chk=PCM2.chk' + '\n'        
         text += f'%nprocshared={self.nproc}\n'

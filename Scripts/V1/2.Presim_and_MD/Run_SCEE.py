@@ -12,14 +12,8 @@ from rdkit.Chem import AllChem
 import os
 import socket
 
-import Gro_Builder
-import Pre_Eq_Simulations
-import Oniom_Generation
-import MD_Simulations
-import SCEE
-import Vacuum
-import PCM1
-import PCM2
+import Gro_Simulations
+import Simulations_Analysis
 
 pipe = Popen("/usr/local/gromacs/bin/GMXRC.bash; env", stdout=PIPE, \
 shell=True)
@@ -84,17 +78,15 @@ def exit_dir():
     dire=f'../'
     os.chdir(dire)
 ################################################################################
-Pre_Eq_Simulations=Pre_Eq_Simulations.Pre_Eq_Simulations()
-MD_Simulations=MD_Simulations.MD_Simulations()
-
+MD=Gro_Simulations.Gro_Simulations()
+Analysis=Simulations_Analysis.Simulations_Analysis() #Make this into an analysis script rather than what I have it now.
 
 # We then minimise and equalibriate the generated solute molecule through a sequence of simulation steps designed using Cecilia's MD Tutorial (I can send you these). We start with a single molecule and insert this molecule into a box containing the calculated number of molecules from the previous step. Then we minimise this box and obtain the dipole moment of the model for the vacuum phase.
-Pre_Eq_Simulations.Pre_Eq_Solute(central,L)
-dipole_model=Pre_Eq_Simulations.get_dipole_model() #I have discovered that this step stops later steps from being able to use -v
+
+MD.run_md(self, MD='Vacuum',Gro_File,Topology_File,L,initial_molecules,solresnametop)
+dipole_model=Analysis.get_dipole_model() #I have discovered that this step stops later steps from being able to use -v
 print(dipole_model)
-Pre_Eq_Simulations.insert_Molecules(central,solvent,system_title,initial_molecules)
-Pre_Eq_Simulations.Write_to_top(system_title,initial_molecules,solresnametop) # If having to rerun the presim I comment this section out as if it keeps running the topology file becomes in correct.
-Pre_Eq_Simulations.Pre_Eq_System(system_title)
+MD.run_md(self, MD='Box',Topology_File)
 
 
 HOMEDIR = os.getcwd()
@@ -107,10 +99,7 @@ for i in replicas:
         create_dir_temps(T)
         for p in P_list:
             create_dir_press(p)
-            MD_Simulations.create_mdpfile(HOMEDIR,'junk.mdp',T,p)
-            MD_Simulations.run_md('junk.mdp',HOMEDIR,system_title)
-            MD_Simulations.process_trajectory(system_title)
-            MD_Simulations.process_gro()
+            MD.run_md(self, MD='Production',mdpfile,HOMEDIR,system_title,T,p)
             exit_dir()
         exit_dir()
     exit_dir()

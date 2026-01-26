@@ -62,7 +62,7 @@ class Vacuum(object):
         f.write(text)
         f.close()
 ################################################################################
-    def run_gaussian(self, step=0):
+    def run_gaussian(self):
 
         step_str = ''
 
