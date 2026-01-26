@@ -196,9 +196,6 @@ Gauss.max_jobs = max_jobs
 Gauss.g09root= Gaussian_Location
 Gauss.GAUSS_SCRDIR = Scratch_Location
 ################################################################################ 
-Gauss.g09root='/home/zoe/Software/Gaussian/g09_pgi'
-Gauss.GAUSS_SCRDIR = '/home/zoe/Research/Gaussian/scratch'
-
 hostname = socket.gethostname()
 print(f"Running on host: {hostname}")
 
@@ -221,7 +218,12 @@ Total_Atoms,qmax=Oniom_Generation.QM_Inputs(Solvent,Topology,qr1,qr2,qr3)     #W
 Oniom_Generation.MM_Inputs(Solvent,Topology,Oniom,qr1,qr2,qr3)  
 Oniom_Generation.Counting_Molecules(Solvent,Oniom,initial_molecules)
 
-
+hostname = socket.gethostname()
+print(f"Running on host: {hostname}")
+Gauss.natom=Total_Atoms
+mu_Vacuum=Gauss.init(Gaus='Vacuum',sol_keyword)
+PCM1= Gauss.init(Gaus='PCM1',sol_keyword,exp_diconst)
+PCM2= Gauss.init(Gaus='PCM2',sol_keyword,cal_diconst)
 
 HOMEDIR = os.getcwd()
 #Gaussian Process for pure liquids
@@ -234,7 +236,7 @@ if pure_solvent == 'Yes':
             create_dir_temps(T)
             for p in P_list:
                 create_dir_press(p)
-                MD.run_md(self, MD='Production',mdpfile,HOMEDIR,system_title,T,p)
+                MD.run_md(self, MD='Production',mdpfile,HOMEDIR,Topology_File,T,p)
                 exit_dir()
             exit_dir()
         exit_dir()

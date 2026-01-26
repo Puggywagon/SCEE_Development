@@ -132,13 +132,13 @@ class Gro_Simulations(object):
         self._wait_for_md_slot()
         gromacs.mdrun('-v', deffnm=f'system', ntmpi=self.ntmpi, ntomp=self.ntomp, pin=self.pin, pinoffset=self.pinoffset)
 ################################################################################
-    def run_md(self, MD='Production',mdpfile,HOMEDIR,system_title,T,p):
+    def run_md(self, MD='Production',mdpfile,HOMEDIR,Topology_File,T,p):
         self.create_mdpfile(HOMEDIR,mdpfile,T,p)
         print('performing molecular dynamics')
 
         mdpfile = f'{mdpfile}'
-        grofile = HOMEDIR+f'/{system_title}.gro'
-        topol = HOMEDIR+f'/{system_title}.top'
+        grofile = HOMEDIR+'system.gro'
+        topol = HOMEDIR+Topology_File
         print(f'mdpfile:{mdpfile} \n grofile: {grofile}\n topol: {topol}')
 
         runname = f'{system_title}_QMMM_md3'
