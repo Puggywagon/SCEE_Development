@@ -23,7 +23,7 @@ class Oniom_Generation(object):
             Mass=atoms.iloc[index]['mass']
             Gros.append(Gro)
             Masses.append(Mass)
-            if Gro_Atom_Types == 'OW':
+            if Gro == 'OW':
                 spicy=row['id']
             else:
                 spicy=0
@@ -45,13 +45,14 @@ class Oniom_Generation(object):
         
         atomtype_dict=self.get_atomtypes(txt)
         atom_types=pd.DataFrame(atomtype_dict)
-        atom_types.columns=['name','type','mass','q','ptype','Sigma','Epsilon']
+        atom_types.columns=['name','type','Atomic_Number','mass','q','ptype','Sigma','Epsilon']
                                   
 
         Sigma_List=[]
         Epsilon_List=[]
         for index, row in atoms.iterrows():
             matching_type = atom_types.loc[atom_types['name'] == row['at_type']]
+            Gro_Atom_Types=matching_type.iloc[0]['type']
             if Gro_Atom_Types == 'OW':
                 Sigma=matching_type.iloc[0]['Sigma']*10
                 Epsilon=matching_type.iloc[0]['Epsilon']
@@ -129,7 +130,7 @@ class Oniom_Generation(object):
             Mass=atoms.iloc[index]['mass']
             Gros.append(Gro)
             Masses.append(Mass)
-            if Gro_Atom_Types == 'OW':
+            if Gro == 'OW':
                 spicy=row['id']
             else:
                 spicy=0
@@ -151,12 +152,13 @@ class Oniom_Generation(object):
             
         atomtype_dict=self.get_atomtypes(txt)
         atom_types=pd.DataFrame(atomtype_dict)
-        atom_types.columns=['name','type','mass','q','ptype','Sigma','Epsilon']
+        atom_types.columns=['name','type','Atomic_Number','mass','q','ptype','Sigma','Epsilon']
                                   
         Sigma_List=[]
         Epsilon_List=[]
         for index, row in atoms.iterrows():
             matching_type = atom_types.loc[atom_types['name'] == row['at_type']]
+            Gro_Atom_Types=matching_type.iloc[0]['type']
             if Gro_Atom_Types == 'OW':
                 Sigma=matching_type.iloc[0]['Sigma']*10
                 Epsilon=matching_type.iloc[0]['Epsilon']
@@ -223,16 +225,28 @@ class Oniom_Generation(object):
             lines = tmp[0].split('\n')
             for line in tmp[0].split('\n'):
                 if (len(line)>0 and line[0] != ';'):
-                    data = line.split()
-                    atomtype_dicts = {'name': data[0],
-                                 'bond_type': data[1],
-                                 'atomic_number': int(data[2]), #Dunno why our script doesn't pick column up?
-                                 'mass': float(data[3]),
-                                 'charge': float(data[4]),
-                                 'ptype': data[5],
-                                 'sigma': float(data[6]),
-                                 'epsilon': float(data[7])}
-                    atomtype_dict.append(atomtype_dicts)
+                    if (len(line)>0 and line[0] != '#'):
+                        data = line.split()
+                        if data[4]=='A' or data[4]=='D':
+                            atomtype_dicts = {'name': data[0],
+                                         'bond_type': 0,
+                                         'atomic_number': data[1],
+                                         'mass': float(data[2]),
+                                         'charge': float(data[3]),
+                                         'ptype': data[4],
+                                         'sigma': float(data[5]),
+                                         'epsilon': float(data[6])}
+                        
+                        else:
+                            atomtype_dicts = {'name': data[0],
+                                         'bond_type': data[1],
+                                         'atomic_number': data[2],
+                                         'mass': float(data[3]),
+                                         'charge': float(data[4]),
+                                         'ptype': data[5],
+                                         'sigma': float(data[6]),
+                                         'epsilon': float(data[7])}
+                        atomtype_dict.append(atomtype_dicts)
         return atomtype_dict
 #################################################################################
     def get_atoms(self,txt):
@@ -258,7 +272,7 @@ class Oniom_Generation(object):
         itp_list = re.findall(r'^#include\s+"([./\w]+)" *', txt, re.MULTILINE)
         return itp_list        
 #################################################################################        
-    def Counting_Molecules(self,Topology,Oniom,Solvent_Molecules):
+    def Counting_Molecules(self,Oniom,Solvent_Molecules):
         with open(Oniom, 'a') as file:
                 file.write(f'{Solvent_Molecules:.0f}\n')
 ################################################################################

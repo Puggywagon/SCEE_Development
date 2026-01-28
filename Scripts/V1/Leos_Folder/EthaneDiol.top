@@ -2,14 +2,12 @@
 #include "forcefield.itp"
 
 
-#include "Aniline_AA.itp"
-#include "Aniline_UA.itp"
+#include "EthaneDiol.itp"
 
 [ system ]
 ; Name
-Aniline
+EthaneDiol
 
 [ molecules ]
 ; Compound        #mols
-Aniline           1
-Ani            1653
+EthaneDiol          1

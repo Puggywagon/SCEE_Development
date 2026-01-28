@@ -11,10 +11,9 @@ import numpy as np
 
 
 import Atoms
-import Simulations_Analysis
 
 Atoms_Dict=Atoms.Atoms()
-Analysis=Simulations_Analysis.Simulations_Analysis()
+
 ################################################################################
 class Gaussian_Calculations(object):
     def __init__(self):
@@ -214,7 +213,7 @@ class Gaussian_Calculations(object):
         
 
 ################################################################################
-    def init(self,Gaus='Vacuum',sol_keyword, workdir='./'):
+    def init(self,sol_keyword,Gaus='Vacuum', workdir='./'):
         rundir = 'Vacuum/'
         dat_atoms,dat_xs,dat_ys,dat_zs=self.dat_generation.gro_to_dat()
         
@@ -259,7 +258,7 @@ class Gaussian_Calculations(object):
         mu_Vacuum=df4['muG']
         return mu_Vacuum
 ################################################################################
-    def init(self,Gaus='PCM1',sol_keyword,exp_diconst, workdir='./'):
+    def init(self,sol_keyword,exp_diconst,Gaus='PCM1', workdir='./'):
         rundir = 'PCM1/'
         dat_atoms,dat_xs,dat_ys,dat_zs=self.dat_generation.gro_to_dat()
                 
@@ -318,7 +317,7 @@ class Gaussian_Calculations(object):
         PCM1= df2['muL_PCM1']
         return PCM1
 ################################################################################
-    def init(self,Gaus='PCM2',sol_keyword,cal_diconst, workdir='./'):
+    def init(self,sol_keyword,cal_diconst,Gaus='PCM2', workdir='./'):
         rundir = 'PCM2/'
         dat_atoms,dat_xs,dat_ys,dat_zs=self.dat_generation.gro_to_dat()
 
@@ -458,15 +457,6 @@ class Gaussian_Calculations(object):
             f = open(datfile, 'w')
             f.write(text_str)
             f.close()
-                               
-                        
-                               
-        Model_Dipole,epsilon=Analysis.get_dipole_model_liquid(system_title) 
-    
-        ratio=Model_Dipole / qmax
-        num1=qr1*ratio*qmax
-        num2=qr2*ratio*qmax
-        num3=qr3*ratio*qmax
             
         self.run_gaussian(step=1)
         df1 = Molecule.get_multipole_statistics(rundir)
@@ -484,7 +474,7 @@ class Gaussian_Calculations(object):
                  coeff = np.polyfit(x, y, 1)
                  b = coeff[0] - 1
                  muL = - coeff[1]/b
-            muL_list.append(muL)
+             muL_list.append(muL)
         df1['muL_SCEE'] = muL_list
         df1.to_csv('Dipole_SCEE.csv', index=False)
         SCEE=df1['muL_SCEE']

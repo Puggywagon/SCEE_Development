@@ -10,8 +10,12 @@ from rdkit import Chem
 from rdkit.Chem import Draw
 from rdkit.Chem import AllChem
 import os
+import sys
 import socket
+from shutil import which
 import yaml
+from pathlib import Path
+
 
 import Gro_Builder
 import Gro_Simulations
@@ -26,6 +30,7 @@ def load_yaml(path):
     if not isinstance(data, dict):
         raise ValueError(f"{path} did not parse to a YAML mapping (dict).")
     return data
+    
 ################################################################################
 def create_dir_Simulations():
     cmd1='mkdir Simulations'
@@ -56,6 +61,36 @@ def exit_dir():
     dire=f'../'
     os.chdir(dire)
 ################################################################################
+def expand_topology_with_itps(topology_file: str) -> str:
+    topology_path = Path(topology_file).resolve()
+    seen = set()
+
+    def walk(file_path: Path) -> str:
+        file_path = file_path.resolve()
+
+        if file_path in seen:
+            return ""
+        seen.add(file_path)
+
+        text = file_path.read_text()
+        includes = Oniom_Generation.get_included_files(text)
+
+        blocks = []
+        if file_path.name != "forcefield.itp":
+            blocks.append(text)
+
+        for inc in includes:
+            inc_path = (file_path.parent / inc).resolve()
+            if file_path.name == "forcefield.itp":
+                if inc_path.name == "ffnonbonded.itp":
+                    blocks.append(inc_path.read_text())
+                continue
+
+            blocks.append(walk(inc_path))
+
+        return "\n\n".join([b for b in blocks if b.strip()])
+    return walk(topology_path)
+################################################################################
 def combine_group(g):
     mu_i = g["mu_liquid"].to_numpy()
     se_i = g["mu_se"].to_numpy()
@@ -82,10 +117,11 @@ Oniom_Generation=Oniom_Generation.Oniom_Generation()
 Gauss=Gaussian_Calculations.Gaussian_Calculations()
 
 ######################################################################################################
-print('With this information are you ready to get started? Yes or No?')
-ready=input()
+print('To start the process, you need to complete the Yaml script based on your system requirements. If you have already completed this please type Yes, If you need to go back and finish doing this please respond No.')
+#ready=input()
+ready='Yes'
 if ready == 'Yes':
-    print('Please continue with the next steps')
+    print('This script will continue with the process.')
 elif ready == 'No':
     print('Please restart this script once you are ready to start.')
     exit(0)
@@ -95,8 +131,8 @@ user_settings = config["User_Settings"]
 State_Conditions = user_settings["State_Conditions"]
 T_list=State_Conditions["Temperature"]
 P_list = State_Conditions["Pressure"]
-Replicas = State_Conditions["Replicas"]
-replicas=range(0,f'{Replicas+1}',1)
+Replicas = State_Conditions["Replicas"]+1
+replicas=range(0,Replicas,1)
 advanced_settings = config["Advanced_Settings"]
 
 # May need to do something different for when Yes_Gro and Yes for a mixture my steps as that will follow will act as a better workflow better for the other mixture options... May need a different structure a little bit.
@@ -118,9 +154,8 @@ elif user_settings["Mode"] == "No_Gro":
     Box_Build='Yes'
 
 elif user_settings["Mode"] == "Build_Gro":
-    Build_Gro=user_settings["Yes_Gro"]
-    Gro_File=Build_Gro["Gro_File"]
-    Topology_File=Build_Gro["Topology_File"]
+    Build_Gro=user_settings["Build_Gro"]
+    Topology_File=Build_Gro["Solvent_Topology_File"]
     solvent=Build_Gro["solvent"]
     density=Build_Gro["density"]
     mol_mass=Build_Gro["mol_mass"]
@@ -128,32 +163,40 @@ elif user_settings["Mode"] == "Build_Gro":
     solresname=Build_Gro["solresname"]
     solmol=Build_Gro["solmol"]
     Box_Build='Yes'
-    Gro_File=Gro_Builder.AA_Structure(solmol,solvent,solresname) #solute #Rename this to handle UA and AA models rather than how I have been doing things..., get this to return the gro file name
-    
-#####################################################################################
-# Where is gromacs
-pipe = Popen("/usr/local/gromacs/bin/GMXRC.bash; env", stdout=PIPE, \
+    Gro_File=Gro_Builder.AA_Structure(solmol,solvent,solresname) #solute #Rename this to handle UA and AA models rather than how I have been doing things..., get this to return the gro file name #Need to figure out how to maintain consistency between gro structure and top file.
+    print('RDKit generates an image of the molecule you have generated with your smile string. Please take a minute to check the structure matches your desired molecule and topology file. If you are ready to continue type \'Yes\', if you need to make adjustments to your smile string please type \'No\'.')
+    #ready=input()
+    ready='Yes'
+    if ready == 'Yes':
+        print('The script will continue on with the next steps of the system.')
+    elif ready == 'No':
+        print('Please restart this script after you have made your adjustments.')
+        exit(0)
+
+
+Gromacs_Location =State_Conditions["Grom_Location"]
+
+pipe = Popen(f"{Gromacs_Location}; env", stdout=PIPE, \
 shell=True)
 output = pipe.communicate()[0]
 env = dict((line.decode('utf8').split("=", 1) for line in output.splitlines()))
-print(env)
 os.environ.update(env)
 
 logfile = open('junk.log', 'w')
 cmd = ['which', 'gmx']
-check_call(cmd, stdout=logfile, stderr=logfile, env=env)
+check_call(cmd, stdout=logfile, stderr=logfile, env=env)    
 
 #####################################################################################
-if Box_Build == 'Yes'
+if Box_Build == 'Yes':
     L = advanced_settings["configuration"]["box_length_nm"]
     avo=6.022*10**23
     N=(density*(((L*10**-7)**3))/(mol_mass))*avo
     initial_molecules=int(np.ceil((N+0.05*N))-1)
     print(initial_molecules)
-    MD.run_md(self, MD='Vacuum',Gro_File,Topology_File,L,initial_molecules,solresnametop)
-    dipole_model=Analysis.get_dipole_model() #I have discovered that this step stops later steps from being able to use -v
-    print(dipole_model)
-MD.run_md(self, MD='Box',Topology_File)        #Just because they gave us a box I don't trust that they have minimised it well.
+    #MD.run_md(Gro_File,Topology_File,L,initial_molecules,solresnametop,Mixture='No', MD='Vacuum')
+    #dipole_model=Analysis.get_dipole_model() #I have discovered that this step stops later steps from being able to use -v
+    #print(dipole_model)
+#MD.run_md(Topology_File,Mixture='No', MD='Box')        #Just because they gave us a box I don't trust that they have minimised it well.
 ######################################################################################################
 #Here is the gaussian for pure liquids and mix
 if user_settings["Mixture_Loop"]=='No':
@@ -161,10 +204,11 @@ if user_settings["Mixture_Loop"]=='No':
 elif user_settings["Mixture_Loop"]=='Yes':
     if user_settings["Mode"] == "No_Gro" or user_settings["Mode"] == "Builds_Gro": 
         pure_solvent='Yes'
-    elif user_settings["Mode"] == "Yes_Gro:
+    elif user_settings["Mode"] == "Yes_Gro":
         pure_solvent='No'
 
 R = advanced_settings["configuration"]["cluster_radius_nm"]
+print(R)
 Configurations = advanced_settings["sampling"]["n_configurations"]
 scaling = advanced_settings["electrostatics"]["charge_scaling"]
 qr1 = scaling["qr1"]
@@ -177,12 +221,6 @@ cal_diconst=round(Di_Const-(Ref_Ind**2)+1,3)
 print(cal_diconst)
 
 #######################################################################
-#Some Gaussian needed info here
-Gauss.natom=Total_Atoms
-Vacuum.natom=Total_Atoms
-PCM1.natom=Total_Atoms
-PCM2.natom=Total_Atoms
-
 max_jobs=State_Conditions["max_jobs"]
 Gaussian_Location =State_Conditions["g09root"]
 Scratch_Location =State_Conditions["GAUSS_SCRDIR"]
@@ -195,35 +233,33 @@ Gauss.max_jobs = max_jobs
 
 Gauss.g09root= Gaussian_Location
 Gauss.GAUSS_SCRDIR = Scratch_Location
-################################################################################ 
-hostname = socket.gethostname()
-print(f"Running on host: {hostname}")
 
-mu_Vacuum=Gauss.init(Gaus='Vacuum',sol_keyword)
-PCM1= Gauss.init(Gaus='PCM1',sol_keyword,exp_diconst)
-PCM2= Gauss.init(Gaus='PCM2',sol_keyword,cal_diconst)
 #######################################################################
 #Making oniom here now
-f = open(Topology_File)
-Topology = f.read()
-f.close()
+Topologys = expand_topology_with_itps(Topology_File)
+with open("Concat_Top.top", "w") as f:
+    f.write(Topologys)
+
 
 solvent_molecules=initial_molecules
 Cut_Off_Radius=R
 Oniom='oniom.inp'
 
-Oniom_Generation.Gen_File(Oniom,Configurations, Cut_Off_Radius)
-itp_list = Oniom_Generation.get_included_files(Topology)
-Total_Atoms,qmax=Oniom_Generation.QM_Inputs(Solvent,Topology,qr1,qr2,qr3)     #We will need to add something here so it searches for the [atoms] for the solvent but I don't really know how to go about doing this script wise
-Oniom_Generation.MM_Inputs(Solvent,Topology,Oniom,qr1,qr2,qr3)  
-Oniom_Generation.Counting_Molecules(Solvent,Oniom,initial_molecules)
+f = open("Concat_Top.top")
+Topology = f.read()
+Oniom_Generation.Gen_File(Oniom,Configurations,solvent,Cut_Off_Radius)
+Total_Atoms,qmax=Oniom_Generation.QM_Inputs(Topology,Oniom,qr1,qr2,qr3)     #We will need to add something here so it searches for the [atoms] for the solvent but I don't really know how to go about doing this script wise
+Oniom_Generation.MM_Inputs(Topology,Oniom,qr1,qr2,qr3)  
+Oniom_Generation.Counting_Molecules(Oniom,initial_molecules)
+f.close()
+exit(0) # Only testing to here as later steps will require simulations to actually be performed before we go much further.
 
 hostname = socket.gethostname()
 print(f"Running on host: {hostname}")
 Gauss.natom=Total_Atoms
-mu_Vacuum=Gauss.init(Gaus='Vacuum',sol_keyword)
-PCM1= Gauss.init(Gaus='PCM1',sol_keyword,exp_diconst)
-PCM2= Gauss.init(Gaus='PCM2',sol_keyword,cal_diconst)
+mu_Vacuum=Gauss.init(sol_keyword,Gaus='Vacuum')
+PCM1= Gauss.init(sol_keyword,exp_diconst,Gaus='PCM1')
+PCM2= Gauss.init(sol_keyword,cal_diconst,Gaus='PCM2')
 
 HOMEDIR = os.getcwd()
 #Gaussian Process for pure liquids
@@ -236,7 +272,8 @@ if pure_solvent == 'Yes':
             create_dir_temps(T)
             for p in P_list:
                 create_dir_press(p)
-                MD.run_md(self, MD='Production',mdpfile,HOMEDIR,Topology_File,T,p)
+                mdfile='Junk.mdp'
+                MD.run_md(mdpfile,HOMEDIR,system_title,T,p,Mixture='No', MD='Production')
                 exit_dir()
             exit_dir()
         exit_dir()
@@ -280,7 +317,7 @@ if pure_solvent == 'Yes':
         mu_mean = values.mean()
         mu_stdev = values.std(ddof=1) if n_cfg > 1 else np.nan
 
-        diconst_corr=(Ref_Ind**2)+((mu_mean /Model_Dipole)*(epsilon+1)
+        diconst_corr=(Ref_Ind**2)+((mu_mean /Model_Dipole)*(epsilon+1))
 
         row = {
             "Replica": i,
@@ -315,7 +352,7 @@ if pure_solvent == 'Yes':
 
 
 
-#Once you have reached this point you can stop as this is my mixture ideas.
+#Below this point are my ideas for handling mixtures. I haven't done much in this side of things yet.
 
 #Gaussian process for mixtures
 if user_settings["Mixture_Loop"]=='Yes':
@@ -330,12 +367,7 @@ if user_settings["Mixture_Loop"]=='Yes':
         No_Gro=user_settings["No_Gro"]
         Mixture_Loop=No_Gro["Mixture_Settings"]
         Solute=Mixture_Loop["solute"]
-   
-   
-                exit_dir()
-            exit_dir()
-        exit_dir()
-    exit_dir()     Solute_Gro_File=Mixture_Loop["Solute_Gro_File"]
+        Solute_Gro_File=Mixture_Loop["Solute_Gro_File"]
         Solute_Topology_File=Mixture_Loop["Solute_Topology_File"]
         resnametop=Mixture_Loop["resnametop"]
         
@@ -355,16 +387,27 @@ if user_settings["Mixture_Loop"]=='Yes':
         Box_Build='Yes'
         
 
-    if Box_Build == 'Yes'
+    if Box_Build == 'Yes':
     
         L = advanced_settings["configuration"]["box_length_nm"]
         solute_molecules=1
-    
-        Pre_Eq_Simulations.Pre_Eq_Solute(Sol_Gro_File,Solute_Topology_File,L)
-        #dipole_model=Pre_Eq_Simulations.get_dipole_model() # I dunno if we need this to do the dielectric constant values
-        Pre_Eq_Simulations.insert_Molecules(System_Gro,Sol_Gro_File,solute_molecules) 
-        Pre_Eq_Simulations.Write_to_top(Topology_File,solute_molecules,resnametop) 
-    
-    Mixture_System_Gro=Pre_Eq_Simulations.Pre_Eq_System(Topology_File)        #Just because they gave us a box I don't trust that they have minimised it well.
+        MD.run_md(Gro_File,Topology_File,L,initial_molecules,solresnametop,Mixture='Yes', MD='Vacuum') # Will need to modify the insert molecules for this step?
+        dipole_model=Analysis.get_dipole_model() #I have discovered that this step stops later steps from being able to use -v
+        print(dipole_model)
+    MD.run_md(Topology_File,Mixture='Yes', MD='Box')             #Just because they gave us a box I don't trust that they have minimised it well.
+    create_dir_Simulations()
+    rows = []
+    for i in replicas:
+        create_dir_reps(i)
+        for T in T_list:
+            create_dir_temps(T)
+            for p in P_list:
+                create_dir_press(p)
+                mdfile='Junk_2.mdp'
+                MD.run_md(mdpfile,HOMEDIR,system_title,T,p,Mixture='Yes', MD='Production')
+                exit_dir()
+            exit_dir()
+        exit_dir()
+    exit_dir()
 
     #Same loop for MD and use mixture gaussian 

@@ -81,12 +81,12 @@ class Gro_Builder(object):
         img = Chem.Draw.MolToImage(mol)
         plt.imshow(img)
         plt.axis("off")
-        plt.savefig(f'{system_title}.png', dpi=300)  
+        plt.savefig(f'{molecule}.png', dpi=300)  
         plt.clf()
     
-        with open(f"{system_title}_AA.gro", 'w') as f:
+        with open(f"{molecule}.gro", 'w') as f:
             # Write header
-            f.write(f"{system_title}_AA\n")
+            f.write(f"{molecule}\n")
             f.write(f"{mol.GetNumAtoms()}\n")
     
             # Write atom section
@@ -96,4 +96,6 @@ class Gro_Builder(object):
                 f.write(f"{1:5d}{resname:5s}{symbol:5s}{i+1:5d}{pos.x:8.3f}{pos.y:8.3f}{pos.z:8.3f}\n")
             box_size = 0.0
             f.write(f"{box_size:10.5f}{box_size:10.5f}{box_size:10.5f}")
+        Gro_File=f"{molecule}.gro"
+        return Gro_File
 #####################################################################################################################################

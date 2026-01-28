@@ -27,9 +27,10 @@ class Atoms(object):
         return None
 ##################################################################################################         
     def gaussian_symbol_from_atomname(self, atomname: str, mass: float | None = None) -> str:
+        name=atomname
         if not name:
             raise ValueError("Empty atomname cannot be resolved")
-
+    
         up = name.upper()
 
         # 1) explicit dummy sites -> Gaussian Bq
@@ -70,7 +71,6 @@ class Atoms(object):
         for i,m in zip(Gros,Masses): # If the atomic number is present we could just use atom_dict...
             Gaus = self.gaussian_symbol_from_atomname(i, m)
             Gaus_List.append(Gaus)
-        print(Gaus_List)
 
         Gro_List=[]
         for n, i in enumerate(Gaus_List, start=1):
@@ -80,7 +80,6 @@ class Atoms(object):
         Total_Atoms=0
         Dummy_List=[]
         for i in Gaus_List:
-            print(f'{i}')
             if i =='H':
                 Dummy_List.append(0)
             elif i=='Bq':
@@ -95,14 +94,3 @@ class Atoms(object):
         atom=self.atom_dict[int(Atom)]
         return atom
 ##################################################################################################
-string='1,6,6,7,8,1,53,35,16,11,9'
-Strings=[s.strip() for s in string.split(',')]
-Atoms=Atoms()
-for S in Strings:
-    atom=Atoms.Atom_Symbol(Atom=S)
-
-Gros=['HNC','CN','ClCH3','MW','NCH','NAC3','NACl','NaCl']
-Masses=[1.008, 12.011, 35.453, 0.000, 14.007, 14.007, 22.990, 22.990]
-Heavy_Atoms,Gro_List,Gaus_List,Dummy_List=Atoms.Atom_Types(Gros,Masses)
-for Gro, gaus,gro,dummy in zip(Gros,Gaus_List, Gro_List,Dummy_List):
-    print(f'Gros:{Gro} gaus:{gaus} gro:{gro} dummy:{dummy}')
