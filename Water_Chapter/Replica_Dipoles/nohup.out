@@ -1,0 +1,5 @@
+cp: cannot create regular file '/home/zoe/Research/Trial/Replica_Dipoles/Replica_2/600K/20.0Bar/': Not a directory
+cp: cannot create regular file '/home/zoe/Research/Trial/Replica_Dipoles/Replica_2/600K/20.0Bar/': Not a directory
+cp: cannot create regular file '/home/zoe/Research/Trial/Replica_Dipoles/Replica_2/600K/20.0Bar/': Not a directory
+chown: cannot access 'Replica_Dipoles/*/*/*/*': No such file or directory
+chown: cannot access 'Replica_Dipoles/*/*/*': No such file or directory

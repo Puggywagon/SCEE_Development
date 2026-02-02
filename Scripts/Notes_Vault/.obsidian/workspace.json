@@ -4,24 +4,17 @@
     "type": "split",
     "children": [
       {
-        "id": "f5f72110edc2b162",
+        "id": "a8586c810c0ee85c",
         "type": "tabs",
         "children": [
           {
-            "id": "abb811974f16626a",
+            "id": "6de25e99b27f32ca",
             "type": "leaf",
             "state": {
-              "type": "canvas",
-              "state": {
-                "file": "SCEE_Pathway_DIagram_V0.canvas",
-                "viewState": {
-                  "x": -320,
-                  "y": 260,
-                  "zoom": -0.7016587254302536
-                }
-              },
-              "icon": "lucide-layout-dashboard",
-              "title": "SCEE_Pathway_DIagram_V0"
+              "type": "empty",
+              "state": {},
+              "icon": "lucide-file",
+              "title": "New tab"
             }
           }
         ]
@@ -186,10 +179,10 @@
       "bases:Create new base": false
     }
   },
-  "active": "abb811974f16626a",
+  "active": "6de25e99b27f32ca",
   "lastOpenFiles": [
-    "Vault_Details.md",
     "SCEE_Pathway_DIagram_V0.canvas",
+    "Vault_Details.md",
     "Welcome.md"
   ]
 }
