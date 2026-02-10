@@ -42,8 +42,6 @@ class Gro_Simulations(object):
                 break
 
             time.sleep(10)
-
-        
 ################################################################################
     def insert_Molecules(self,initial_molecules,Mixture):
         if Mixture==No:

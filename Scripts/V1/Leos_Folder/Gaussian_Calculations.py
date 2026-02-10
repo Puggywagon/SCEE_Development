@@ -11,9 +11,10 @@ import numpy as np
 
 
 import Atoms
+import Simulations_Analysis
 
 Atoms_Dict=Atoms.Atoms()
-
+Analysis=Simulations_Analysis.Simulations_Analysis() 
 ################################################################################
 class Gaussian_Calculations(object):
     def __init__(self):
@@ -237,20 +238,8 @@ class Gaussian_Calculations(object):
         f.close()
         self.run_gaussian(step=0)
     
-        df4 = Vacuum.get_multipole_statistics()
-        muG_list=[]
-        for index, row in df4.iterrows():
-            x = np.array([num1, num2, num3])
-            y = np.array([row['dipole_l'], row['dipole_m'], row['dipole_h']])
-            coeff = np.polyfit(x, y, 2)
-            b = coeff[1] - 1
-            if (coeff[0] >= 1.0e-6):
-                 muG = (-b - np.sqrt(b*b-4*coeff[0]*coeff[2])) / (2*coeff[0])
-            else:
-                coeff = np.polyfit(x, y, 1)
-                b = coeff[0] - 1
-                muG = - coeff[1]/b
-            muG_list.append(muG)
+        df4 = Vacuum.get_multipole_statistics(rundir)
+        muG_list=df4.mean()
         df4['muG'] = muG_list
         df4.to_csv('Dipole_Vacuum.csv', index=False)
         print(muG_list)
@@ -298,19 +287,7 @@ class Gaussian_Calculations(object):
         self.run_gaussian(step=0)
           
         df2 = PCM1.get_multipole_statistics(rundir)
-        muL_list1 = []
-        for index, row in df2.iterrows():
-            x = np.array([num1, num2, num3])
-            y = np.array([row['dipole_l'], row['dipole_m'], row['dipole_h']])
-            coeff = np.polyfit(x, y, 2)
-            b = coeff[1] - 1
-            if (coeff[0] >= 1.0e-6):
-                muL = (-b - np.sqrt(b*b-4*coeff[0]*coeff[2])) / (2*coeff[0])
-            else:
-                coeff = np.polyfit(x, y, 1)
-                b = coeff[0] - 1
-                muL = - coeff[1]/b
-            muL_list1.append(muL)
+        muL_list1=df2.mean()
     
         df2['muL_PCM1'] = muL_list1
         df2.to_csv('Dipole_PCM1.csv', index=False)
@@ -356,19 +333,7 @@ class Gaussian_Calculations(object):
         PCM2.run_gaussian(step=0)
 
         df3 = PCM2.get_multipole_statistics(rundir)
-        muL_list2 = []
-        for index, row in df3.iterrows():
-            x = np.array([num1, num2, num3])
-            y = np.array([row['dipole_l'], row['dipole_m'], row['dipole_h']])
-            coeff = np.polyfit(x, y, 2)
-            b = coeff[1] - 1
-            if (coeff[0] >= 1.0e-6):
-                 muL = (-b - np.sqrt(b*b-4*coeff[0]*coeff[2])) / (2*coeff[0])
-            else:
-                coeff = np.polyfit(x, y, 1)
-                b = coeff[0] - 1
-                muL = - coeff[1]/b
-            muL_list2.append(muL)
+        muL_list2=df3.mean()
    
         df3['muL_PCM2'] = muL_list2
         df3.to_csv('Dipole_PCM2.csv', index=False)
@@ -428,6 +393,11 @@ class Gaussian_Calculations(object):
         
         filelist = glob.glob(workdir + '*_c*_q?_chg.inp')
         print(filelist)
+        Model_Dipole=Analysis.get_dipole_model_liquid(system_title) 
+        ratio=Model_Dipole / qmax
+        num1=qr1*ratio*qmax
+        num2=qr2*ratio*qmax
+        num3=qr3*ratio*qmax
         for inpfile in filelist:
 
             file0_str = inpfile.replace('_chg.inp', '')
@@ -468,8 +438,9 @@ class Gaussian_Calculations(object):
              y = np.array([row['dipole_l'], row['dipole_m'], row['dipole_h']])
              coeff = np.polyfit(x, y, 2)
              b = coeff[1] - 1
-             if (coeff[0] >= 1.0e-6):
-                  muL = (-b - np.sqrt(b*b-4*coeff[0]*coeff[2])) / (2*coeff[0])
+             fact = b*b-4*coeff[0]*coeff[2]
+             if (coeff[0] >= 1.0e-6) and (fact > 0):
+                  muL = (-b - np.sqrt(fact)) / (2*coeff[0])
              else:
                  coeff = np.polyfit(x, y, 1)
                  b = coeff[0] - 1
