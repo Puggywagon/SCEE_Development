@@ -4,11 +4,18 @@ from rdkit.Chem import Draw
 from rdkit.Chem import AllChem
 import matplotlib.pyplot as plt
 
-##################################################################################################
+
+################################################################################
+################################################################################    
+################################################################################    
 class Gro_Builder(object):
+    
     def __init__(self):
         pass
-###################################################################################################
+
+
+################################################################################
+################################################################################    
     def Functional_Group(self,solmol):
        
         ketone_smarts = '[C](=O)[C]'
@@ -70,19 +77,27 @@ class Gro_Builder(object):
             functional_groups="Carbons only"
     
         return functional_groups
-###################################################################################################
+
+    
+################################################################################
+################################################################################    
     def AA_Structure(self,mol,molecule,resname): # Will need different structure for if we include the option to gen UA solvents but I dunno how we do that for mixtures
         mol = Chem.MolFromSmiles(mol)
         # Generate 3D coordinates
         mol = Chem.AddHs(mol)
         Chem.AllChem.EmbedMolecule(mol)
         Chem.AllChem.UFFOptimizeMolecule(mol)
+        print('here')
+        print(f'mol={mol}; molecule = {molecule}')
         
         img = Chem.Draw.MolToImage(mol)
-        plt.imshow(img)
-        plt.axis("off")
-        plt.savefig(f'{molecule}.png', dpi=300)  
-        plt.clf()
+        print(img)
+# LL: plotting does not work for me        
+#        plt.imshow(img)
+#        plt.axis("off")
+#        plt.savefig(f'{molecule}.png', dpi=300)  
+#        plt.clf()
+        print('here 2')
     
         with open(f"{molecule}.gro", 'w') as f:
             # Write header
@@ -97,5 +112,12 @@ class Gro_Builder(object):
             box_size = 0.0
             f.write(f"{box_size:10.5f}{box_size:10.5f}{box_size:10.5f}")
         Gro_File=f"{molecule}.gro"
+
+        print('Gro_Builder.AA_Structure() complete')
+        
         return Gro_File
-#####################################################################################################################################
+
+
+################################################################################
+################################################################################    
+################################################################################    

@@ -134,7 +134,7 @@ P_list = State_Conditions["Pressure"]
 Replicas = State_Conditions["Replicas"]+1
 replicas=range(0,Replicas,1)
 advanced_settings = config["Advanced_Settings"]
-
+print('here:', user_settings['Mode'])
 # May need to do something different for when Yes_Gro and Yes for a mixture my steps as that will follow will act as a better workflow better for the other mixture options... May need a different structure a little bit.
 if user_settings["Mode"] == "Yes_Gro":
     Yes_Gro=user_settings["Yes_Gro"]
@@ -154,6 +154,7 @@ elif user_settings["Mode"] == "No_Gro":
     Box_Build='Yes'
 
 elif user_settings["Mode"] == "Build_Gro":
+    print('Building *.gro file')
     Build_Gro=user_settings["Build_Gro"]
     Topology_File=Build_Gro["Solvent_Topology_File"]
     solvent=Build_Gro["solvent"]
@@ -163,9 +164,12 @@ elif user_settings["Mode"] == "Build_Gro":
     solresname=Build_Gro["solresname"]
     solmol=Build_Gro["solmol"]
     Box_Build='Yes'
+    print('before')
     Gro_File=Gro_Builder.AA_Structure(solmol,solvent,solresname) #solute #Rename this to handle UA and AA models rather than how I have been doing things..., get this to return the gro file name #Need to figure out how to maintain consistency between gro structure and top file.
     print('RDKit generates an image of the molecule you have generated with your smile string. Please take a minute to check the structure matches your desired molecule and topology file. If you are ready to continue type \'Yes\', if you need to make adjustments to your smile string please type \'No\'.')
     #ready=input()
+    print('after')
+
     ready='Yes'
     if ready == 'Yes':
         print('The script will continue on with the next steps of the system.')
@@ -173,7 +177,7 @@ elif user_settings["Mode"] == "Build_Gro":
         print('Please restart this script after you have made your adjustments.')
         exit(0)
 
-
+print('here')
 Gromacs_Location =State_Conditions["Grom_Location"]
 
 pipe = Popen(f"{Gromacs_Location}; env", stdout=PIPE, \
