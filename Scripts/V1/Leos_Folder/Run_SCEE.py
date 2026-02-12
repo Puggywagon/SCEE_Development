@@ -63,6 +63,7 @@ def exit_dir():
 ################################################################################
 def expand_topology_with_itps(topology_file: str) -> str:
     topology_path = Path(topology_file).resolve()
+    print(f'input string: {topology_file}; path={topology_path}')
     seen = set()
 
     def walk(file_path: Path) -> str:
@@ -177,8 +178,11 @@ elif user_settings["Mode"] == "Build_Gro":
         print('Please restart this script after you have made your adjustments.')
         exit(0)
 
-print('here')
+        
+print('setting GROMACS run environment')
+# LL: I don't have the GMXRC.bash script in my GROMACS installation
 Gromacs_Location =State_Conditions["Grom_Location"]
+print(f'Gromacs_Location={Gromacs_Location}')
 
 pipe = Popen(f"{Gromacs_Location}; env", stdout=PIPE, \
 shell=True)
@@ -193,7 +197,7 @@ check_call(cmd, stdout=logfile, stderr=logfile, env=env)
 #####################################################################################
 if Box_Build == 'Yes':
     L = advanced_settings["configuration"]["box_length_nm"]
-    avo=6.022*10**23
+    avo=6.022e23
     N=(density*(((L*10**-7)**3))/(mol_mass))*avo
     initial_molecules=int(np.ceil((N+0.05*N))-1)
     print(initial_molecules)
@@ -202,6 +206,14 @@ if Box_Build == 'Yes':
     #print(dipole_model)
 #MD.run_md(Topology_File,Mixture='No', MD='Box')        #Just because they gave us a box I don't trust that they have minimised it well.
 ######################################################################################################
+
+
+
+
+
+
+
+
 #Here is the gaussian for pure liquids and mix
 if user_settings["Mixture_Loop"]=='No':
     pure_solvent='Yes'
@@ -223,6 +235,8 @@ Di_Const = State_Conditions["Di_Const"]
 Ref_Ind = State_Conditions["Ref_Ind"]
 cal_diconst=round(Di_Const-(Ref_Ind**2)+1,3)
 print(cal_diconst)
+print('here I am')
+
 
 #######################################################################
 max_jobs=State_Conditions["max_jobs"]
@@ -240,6 +254,7 @@ Gauss.GAUSS_SCRDIR = Scratch_Location
 
 #######################################################################
 #Making oniom here now
+print(f'topology file: {Topology_File}')
 Topologys = expand_topology_with_itps(Topology_File)
 with open("Concat_Top.top", "w") as f:
     f.write(Topologys)
@@ -256,6 +271,9 @@ Total_Atoms,qmax=Oniom_Generation.QM_Inputs(Topology,Oniom,qr1,qr2,qr3)     #We 
 Oniom_Generation.MM_Inputs(Topology,Oniom,qr1,qr2,qr3)  
 Oniom_Generation.Counting_Molecules(Oniom,initial_molecules)
 f.close()
+
+
+print('tested up to here')
 exit(0) # Only testing to here as later steps will require simulations to actually be performed before we go much further.
 
 hostname = socket.gethostname()
