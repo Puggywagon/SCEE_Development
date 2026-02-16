@@ -378,7 +378,7 @@ class Gaussian_Calculations(object):
         self.run_gaussian(step=0)
         
 ################################################################################
-    def init(self,Gaus='SCEE_V1', workdir='./'):
+    def init(self,ref_ind,Gaus='SCEE_V1', workdir='./'):
         rundir = 'SCEE/'
 
         text  = f'%nprocshared={self.nproc}\n'
@@ -449,5 +449,8 @@ class Gaussian_Calculations(object):
         df1['muL_SCEE'] = muL_list
         df1.to_csv('Dipole_SCEE.csv', index=False)
         SCEE=df1['muL_SCEE']
+        
+        
+        
         return SCEE
 ################################################################################

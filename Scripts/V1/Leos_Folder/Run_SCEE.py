@@ -433,3 +433,7 @@ if user_settings["Mixture_Loop"]=='Yes':
     exit_dir()
 
     #Same loop for MD and use mixture gaussian 
+    
+    
+    
+    

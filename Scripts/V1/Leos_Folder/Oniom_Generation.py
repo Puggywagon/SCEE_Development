@@ -23,7 +23,7 @@ class Oniom_Generation(object):
             Mass=atoms.iloc[index]['mass']
             Gros.append(Gro)
             Masses.append(Mass)
-            if Gro == 'OW':
+            if Gro == 'OW':            #We do this because Water is weird
                 spicy=row['id']
             else:
                 spicy=0
@@ -53,22 +53,22 @@ class Oniom_Generation(object):
         for index, row in atoms.iterrows():
             matching_type = atom_types.loc[atom_types['name'] == row['at_type']]
             Gro_Atom_Types=matching_type.iloc[0]['type']
-            if Gro_Atom_Types == 'OW':
+            if Gro_Atom_Types == 'OW':            #We do this because Water is weird
                 Sigma=matching_type.iloc[0]['Sigma']*10
                 Epsilon=matching_type.iloc[0]['Epsilon']
                 Sigma_List.append(Sigma)
                 Epsilon_List.append(Epsilon)
-            elif Gro_Atom_Types == 'HO':
+            elif Gro_Atom_Types == 'HO':            #In opls s and e are == 0
                 Sigma=0.2673
                 Epsilon=0.0418
                 Sigma_List.append(Sigma)
                 Epsilon_List.append(Epsilon)
-            elif Gro_Atom_Types == 'HN':
+            elif Gro_Atom_Types == 'HN':            #In opls s and e are == 0
                 Sigma=0.2673
                 Epsilon=0.0418
                 Sigma_List.append(Sigma)
                 Epsilon_List.append(Epsilon)
-            elif Gro_Atom_Types == 'HW':
+            elif Gro_Atom_Types == 'HW':            #In opls s and e are == 0
                 Sigma=0.2673
                 Epsilon=0.0418
                 Sigma_List.append(Sigma)
@@ -81,11 +81,11 @@ class Oniom_Generation(object):
             
         for G,Gro,Gaus,Dummy,qi,Sigma,Epsilon in zip(Gros,Gro_List,Gaus_List,Dummy_List,qilist,Sigma_List,Epsilon_List):
             wi=qi/qmax            
-            if G == 'OW':
+            if G == 'OW':             #We do this because Water is weird
                 q1=-qmax*qr1  
                 q2=-qmax*qr2      
                 q3=-qmax*qr3
-            elif G == 'MW':
+            elif G == 'MW':            #We do this because Water is weird
                 q1=0      
                 q2=0  
                 q3=0
@@ -159,7 +159,7 @@ class Oniom_Generation(object):
         for index, row in atoms.iterrows():
             matching_type = atom_types.loc[atom_types['name'] == row['at_type']]
             Gro_Atom_Types=matching_type.iloc[0]['type']
-            if Gro_Atom_Types == 'OW':
+            if Gro_Atom_Types == 'OW':            #We do this because Water is weird
                 Sigma=matching_type.iloc[0]['Sigma']*10
                 Epsilon=matching_type.iloc[0]['Epsilon']
                 Sigma_List.append(Sigma)
@@ -174,7 +174,7 @@ class Oniom_Generation(object):
                 Epsilon=0.0418
                 Sigma_List.append(Sigma)
                 Epsilon_List.append(Epsilon)
-            elif Gro_Atom_Types == 'HW':
+            elif Gro_Atom_Types == 'HW':            #We do this because Water is weird
                 Sigma=0.2673
                 Epsilon=0.0418
                 Sigma_List.append(Sigma)
@@ -187,14 +187,14 @@ class Oniom_Generation(object):
             
         for G,Gro,Gaus,qi,Sigma,Epsilon in zip(Gros,Gro_List,Gaus_List,qilist,Sigma_List,Epsilon_List):
             wi=qi/qmax            
-            if G == 'OW':
-                q1=-qmax*qr1  
-                q2=-qmax*qr2      
-                q3=-qmax*qr3
-            elif G == 'MW':
+            if G == 'OW':            #We do this because Water is weird
                 q1=0      
                 q2=0  
                 q3=0
+            elif G == 'MW':            #We do this because Water is weird
+                q1=-qmax*qr1  
+                q2=-qmax*qr2      
+                q3=-qmax*qr3
             elif not G == 'MW' and not G == 'OW' and wi == 1:
                 q1=qmax*qr1       
                 q2=qmax*qr2        
