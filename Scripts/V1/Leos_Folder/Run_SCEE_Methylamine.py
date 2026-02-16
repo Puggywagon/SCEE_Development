@@ -643,5 +643,5 @@ collection['STDEV']=np.std(plot['mu_liquid']) #Not sure if this is the correct a
 collection['SE']=collection['STDEV']/count  
 
 
-collection.to_csv(f"Results.csv", index=False)
+
 ################################################################################

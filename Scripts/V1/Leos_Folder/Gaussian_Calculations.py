@@ -448,9 +448,6 @@ class Gaussian_Calculations(object):
              muL_list.append(muL)
         df1['muL_SCEE'] = muL_list
         df1.to_csv('Dipole_SCEE.csv', index=False)
-        SCEE=df1['muL_SCEE']
-        
-        
-        
+        SCEE=df1['muL_SCEE']        
         return SCEE
 ################################################################################
