@@ -302,7 +302,9 @@ if pure_solvent == 'Yes':
     exit_dir()
     
     dir_list = glob.glob('./Simulations/replica_*/*K/*.0Bar')
-
+    count=0
+    plot={}
+    plot=pd.DataFrame(plot)
     for rundir in dir_list:
         # Here we copy the files into directory we are running these steps
         os.chdir('./' + rundir)
@@ -332,47 +334,52 @@ if pure_solvent == 'Yes':
         df['muL_SCEE']=df1['muL_SCEE']
         df['delta_mu'] = delta_mu_list
         df['mu_liquid'] = mu_liquid_list
-        
-        values = df["mu_liquid"].dropna()
-        n_cfg = values.count()
-
-        mu_mean = values.mean()
-        mu_stdev = values.std(ddof=1) if n_cfg > 1 else np.nan
-
-        diconst_corr=(Ref_Ind**2)+((mu_mean /Model_Dipole)*(epsilon+1))
-
-        row = {
-            "Replica": i,
-            "Temperature": T,
-            "Pressure": p,
-            "muL_SCEE": df["muL_SCEE"].mean(),
-            "delta_mu": df["delta_mu"].mean(),
-            "mu_liquid": mu_mean,
-            "mu_stdev": mu_stdev,
-            }
-                
-        diconst_corr = Ref_Ind**2 + (mu_mean / Model_Dipole) * (epsilon + 1)  #Can we check this???
-        row["diconst_corr"] = diconst_corr
-        mu_se = (mu_stdev / np.sqrt(n_cfg)) if n_cfg > 1 else np.nan
-        row["mu_se"] = mu_se
-        df.to_csv('Dipole_Calculations.csv', index=False)  
-        os.chdir(HOMEDIR)  
-        
-    df5 = pd.DataFrame(rows)
-    df5.to_csv(HOMEDIR + "Results_1.csv", index=False)
-    df6=pd.read_csv('Results_1.csv')
-    df6.columns=['Replica','Temperature','Pressure','muL_SCEE','delta_mu','mu_liquid','mu_stdev','diconst_corr']
-    df6 = pd.read_csv(HOMEDIR + "Results_1.csv")
+         
+        os.chdir(HOMEDIR)    
     
-    df7 = (
-        df6.groupby(["Temperature", "Pressure"], as_index=False)
-           .apply(combine_group)
-           .reset_index(drop=True))
-
-    df7.to_csv(HOMEDIR + "Results_2.csv", index=False)
+        plot['muL_SCEE']=df1['muL_SCEE']
+        plot['delta_mu'] = delta_mu_list
+        plot['mu_liquid'] = mu_liquid_list
+        plot['Model_Dipole'],plot['Model_Epsilon'] = Analysis.get_dipole_model_liquid
+        
+        count+=1
+        
+    print(f'Plotting distribution for {central}')
     
+    Analysis.plot_dipoledist()
+    
+    #Will need to adapt the following to handle mixtures
+    collection={}
+    collection=pd.DataFrame(collection)
+    collection['Solvent']=f'{solvent}' #Input
+    collection['Temperatures']=T_list #Input
+    collection['Pressures']=P_list    #Input
+    collection['Replicas']=count  #counted in above iteration
+    collection['Number of Configurations']=len(plot['mu_liquid'])   #extracted from the total length of 
 
+    collection['Experimental Gas Dipole Moment']=gas_dipole
+    collection['Vacuum Dipole Moment Model']=dipole_model #Calculated from gromacs
+    collection['Liquid Dipole Moment Model']=plot['Model_Dipole'].mean() # calculated from gromacs
+    collection['Experimental Refractive Index']=ref_ind #Input
 
+    collection['Experimental Epsilon']=exp_diconst #Input
+    collection['Model Epsilon']=plot['Model_Epsilon'].mean() #from gromacs at sane tune as liquid dipole moment
+    collection['cal_diconst']=cal_diconst #calculated
+  
+    collection['mu_Vacuum']=mu_Vacuum #gaussian calc
+    collection['PCM1']=PCM1 #gaussian calc
+    collection['PCM2']=PCM2 #gaussian calc
+    collection['muL_SCEE']=plot['muL_SCEE'].mean()    #the configurations
+    collection['delta_mu']=plot['delta_mu'].mean()    
+    collection['mu_liquid']=plot['mu_liquid'].mean()  
+
+    collection['Dielectric Constant Correction'] = collection['Experimental Refractive Index']**2 + (collection['mu_liquid'] /collection['Liquid Dipole Moment Model']) * (collection['Model Epsilon'] + 1)
+    
+    collection['STDEV']=np.std(plot['mu_liquid']) #Not sure if this is the correct approach for error calculations, need to figure our error propogation for this instead
+    collection['SE']=collection['STDEV']/count  
+    
+    collection.to_csv(f"Results_Pure solvent.csv", index=False)
+    
 
 #Below this point are my ideas for handling mixtures. I haven't done much in this side of things yet.
 
@@ -433,3 +440,7 @@ if user_settings["Mixture_Loop"]=='Yes':
     exit_dir()
 
     #Same loop for MD and use mixture gaussian 
+    
+    
+    
+    
