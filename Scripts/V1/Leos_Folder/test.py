@@ -56,6 +56,11 @@ Gro_File=Gro_Builder.AA_Structure(solmol,solvent,solresname) #solute #Rename thi
 ################################################################################
 qm = SCEE_Gaussian.SCEE_Gaussian()
 
+itp = 'EthaneDiol.itp'
+ref_itp = 'ffnonbonded.itp'
+qm.create_atom_list(itp, ref_itp)
+
+
 
 qm['max_jobs'] = config['User']['Gaussian']['max_jobs']
 qm['g09root'] = config['User']['Gaussian']['g09root']
