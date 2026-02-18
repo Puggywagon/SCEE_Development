@@ -59,7 +59,11 @@ qm = SCEE_Gaussian.SCEE_Gaussian()
 itp = 'EthaneDiol.itp'
 ref_itp = 'ffnonbonded.itp'
 qm.create_atom_list(itp, ref_itp)
+qm.write_atom_list()
 
+#for atom in qm.atom_list:
+#    print(atom['nr'], atom['type'], atom['ptype'], atom['charge'], atom['sigma'], atom['epsilon'])
+    
 
 
 qm['max_jobs'] = config['User']['Gaussian']['max_jobs']
