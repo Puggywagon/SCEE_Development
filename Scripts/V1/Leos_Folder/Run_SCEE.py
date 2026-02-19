@@ -201,18 +201,11 @@ if Box_Build == 'Yes':
     N=(density*(((L*10**-7)**3))/(mol_mass))*avo
     initial_molecules=int(np.ceil((N+0.05*N))-1)
     print(initial_molecules)
-    #MD.run_md(Gro_File,Topology_File,L,initial_molecules,solresnametop,Mixture='No', MD='Vacuum')
+    #MD.run_md1(Gro_File,Topology_File,L,initial_molecules,solresnametop,Mixture='No', MD='Vacuum')
     #dipole_model=Analysis.get_dipole_model() #I have discovered that this step stops later steps from being able to use -v
     #print(dipole_model)
-#MD.run_md(Topology_File,Mixture='No', MD='Box')        #Just because they gave us a box I don't trust that they have minimised it well.
+#MD.run_md2(Topology_File,Mixture='No', MD='Box')        #Just because they gave us a box I don't trust that they have minimised it well.
 ######################################################################################################
-
-
-
-
-
-
-
 
 #Here is the gaussian for pure liquids and mix
 if user_settings["Mixture_Loop"]=='No':
@@ -279,9 +272,9 @@ exit(0) # Only testing to here as later steps will require simulations to actual
 hostname = socket.gethostname()
 print(f"Running on host: {hostname}")
 Gauss.natom=Total_Atoms
-mu_Vacuum=Gauss.init(sol_keyword,Gaus='Vacuum')
-PCM1= Gauss.init(sol_keyword,exp_diconst,Gaus='PCM1')
-PCM2= Gauss.init(sol_keyword,cal_diconst,Gaus='PCM2')
+mu_Vacuum=Gauss.init0(sol_keyword,Gaus='Vacuum')
+PCM1= Gauss.init1(sol_keyword,exp_diconst,Gaus='PCM1')
+PCM2= Gauss.init2(sol_keyword,cal_diconst,Gaus='PCM2')
 
 HOMEDIR = os.getcwd()
 #Gaussian Process for pure liquids
@@ -295,7 +288,7 @@ if pure_solvent == 'Yes':
             for p in P_list:
                 create_dir_press(p)
                 mdfile='Junk.mdp'
-                MD.run_md(mdpfile,HOMEDIR,system_title,T,p,Mixture='No', MD='Production')
+                MD.run_md3(mdpfile,HOMEDIR,system_title,T,p,Mixture='No', MD='Production')
                 exit_dir()
             exit_dir()
         exit_dir()
@@ -311,8 +304,8 @@ if pure_solvent == 'Yes':
         cwd = os.getcwd()
         print(cwd)
         Gauss.process_gro(exe=HOMEDIR +'/' + 'shellO',inp=HOMEDIR +'/' +'oniom.inp') 
-        Gauss.init(Gaus='SCEE_V0')
-        SCEE=Gauss.init(Gaus='SCEE_V1')
+        Gauss.init3(Gaus='SCEE_V0')
+        SCEE=Gauss.init4(Gaus='SCEE_V1')
     
         # Depending on the basis set used in the SCEE approach, it is more accurate to calculate the induced dipole moment (delta_mu) and use this to calculate the liquid dipole moment (mu_liquid) using the experimental gas phase values, rather than reporting the SCEE dipole moment directly (mu_SCEE). And so I have this step here to calculate this. If you have questions about this bit I recommend speaking with Miguel about it.
         delta_mu_list=[]
