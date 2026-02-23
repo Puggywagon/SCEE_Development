@@ -61,10 +61,59 @@ def exit_dir():
     dire=f'../'
     os.chdir(dire)
 ################################################################################
+def expand_topology_with_itps(topology_file: str) -> str:
+    topology_path = Path(topology_file).resolve()
+    print(f'input string: {topology_file}; path={topology_path}')
+    seen = set()
+
+    def walk(file_path: Path) -> str:
+        file_path = file_path.resolve()
+
+        if file_path in seen:
+            return ""
+        seen.add(file_path)
+
+        text = file_path.read_text()
+        includes = Oniom_Generation.get_included_files(text)
+
+        blocks = []
+        if file_path.name != "forcefield.itp":
+            blocks.append(text)
+
+        for inc in includes:
+            inc_path = (file_path.parent / inc).resolve()
+            if file_path.name == "forcefield.itp":
+                if inc_path.name == "ffnonbonded.itp":
+                    blocks.append(inc_path.read_text())
+                continue
+
+            blocks.append(walk(inc_path))
+
+        return "\n\n".join([b for b in blocks if b.strip()])
+    return walk(topology_path)
+################################################################################
+def combine_group(g):
+    mu_i = g["mu_liquid"].to_numpy()
+    se_i = g["mu_se"].to_numpy()
+
+    # Drop rows where se is missing
+    mask = np.isfinite(mu_i) & np.isfinite(se_i)
+    mu_i = mu_i[mask]
+    se_i = se_i[mask]
+
+    N = len(mu_i)
+    if N == 0:
+        return pd.Series({"mu_liquid_mean": np.nan, "mu_liquid_se": np.nan})
+
+    mu_mean = mu_i.mean()
+    mu_se = np.sqrt(np.sum(se_i**2)) / N
+
+    return pd.Series({"mu_liquid_mean": mu_mean, "mu_liquid_se": mu_se})
+################################################################################
 
 Gro_Builder=Gro_Builder.Gro_Builder()
 MD=Gro_Simulations.Gro_Simulations()
-Analysis=Simulations_Analysis.Simulations_Analysis() 
+Analysis=Simulations_Analysis.Simulations_Analysis() #Make this into an analysis script rather than what I have it now.
 Oniom_Generation=Oniom_Generation.Oniom_Generation()
 Gauss=Gaussian_Calculations.Gaussian_Calculations()
 
@@ -116,9 +165,11 @@ elif user_settings["Mode"] == "Build_Gro":
     solresname=Build_Gro["solresname"]
     solmol=Build_Gro["solmol"]
     Box_Build='Yes'
+    print('before')
     Gro_File=Gro_Builder.AA_Structure(solmol,solvent,solresname) #solute #Rename this to handle UA and AA models rather than how I have been doing things..., get this to return the gro file name #Need to figure out how to maintain consistency between gro structure and top file.
     print('RDKit generates an image of the molecule you have generated with your smile string. Please take a minute to check the structure matches your desired molecule and topology file. If you are ready to continue type \'Yes\', if you need to make adjustments to your smile string please type \'No\'.')
     #ready=input()
+    print('after')
 
     ready='Yes'
     if ready == 'Yes':
@@ -195,7 +246,7 @@ Gauss.GAUSS_SCRDIR = Scratch_Location
 #######################################################################
 #Making oniom here now
 print(f'topology file: {Topology_File}')
-Topologys = Oniom_Generation.expand_topology_with_itps(Topology_File)
+Topologys = expand_topology_with_itps(Topology_File)
 with open("Concat_Top.top", "w") as f:
     f.write(Topologys)
 
@@ -245,6 +296,7 @@ if pure_solvent == 'Yes':
     plot={}
     plot=pd.DataFrame(plot)
     for rundir in dir_list:
+        # Here we copy the files into directory we are running these steps
         os.chdir('./' + rundir)
         cwd = os.getcwd()
         print(cwd)
@@ -252,6 +304,7 @@ if pure_solvent == 'Yes':
         Gauss.init3(Gaus='SCEE_V0')
         SCEE=Gauss.init4(Gaus='SCEE_V1')
     
+        # Depending on the basis set used in the SCEE approach, it is more accurate to calculate the induced dipole moment (delta_mu) and use this to calculate the liquid dipole moment (mu_liquid) using the experimental gas phase values, rather than reporting the SCEE dipole moment directly (mu_SCEE). And so I have this step here to calculate this. If you have questions about this bit I recommend speaking with Miguel about it.
         delta_mu_list=[]
         mu_liquid_list=[]
         for i in df1['muL_SCEE']:
@@ -271,8 +324,7 @@ if pure_solvent == 'Yes':
         df['muL_SCEE']=df1['muL_SCEE']
         df['delta_mu'] = delta_mu_list
         df['mu_liquid'] = mu_liquid_list
-    
-        df.to_csv('Dipole_Calculations.csv', index=False)  
+         
         os.chdir(HOMEDIR)    
     
         plot['muL_SCEE']=df1['muL_SCEE']
@@ -286,7 +338,7 @@ if pure_solvent == 'Yes':
     
     Analysis.plot_dipoledist()
     
-
+    #Will need to adapt the following to handle mixtures
     collection={}
     collection=pd.DataFrame(collection)
     collection['Solvent']=f'{solvent}' #Input
@@ -317,4 +369,68 @@ if pure_solvent == 'Yes':
     collection['SE']=collection['STDEV']/count  
     
     collection.to_csv(f"Results_Pure solvent.csv", index=False)
- 
+    
+
+#Below this point are my ideas for handling mixtures. I haven't done much in this side of things yet.
+
+#Gaussian process for mixtures
+if user_settings["Mixture_Loop"]=='Yes':
+    if user_settings["Mode"] == "Yes_Gro":
+        Yes_Gro=user_settings["Yes_Gro"]
+        Mixture_Loop=Yes_Gro["Mixture_Settings"]
+        Solute=Mixture_Loop["solute"]
+        
+        Box_Build='No'
+        
+    elif user_settings["Mode"] == "No_Gro":
+        No_Gro=user_settings["No_Gro"]
+        Mixture_Loop=No_Gro["Mixture_Settings"]
+        Solute=Mixture_Loop["solute"]
+        Solute_Gro_File=Mixture_Loop["Solute_Gro_File"]
+        Solute_Topology_File=Mixture_Loop["Solute_Topology_File"]
+        resnametop=Mixture_Loop["resnametop"]
+        
+        Box_Build='Yes'
+        
+    elif user_settings["Mode"] == "Builds_Gro":
+        Builds_Gro=user_settings["Builds_Gro"]
+        Mixture_Loop=Builds_Gro["Mixture_Settings"]
+        Solute=Mixture_Loop["solute"]
+        Solute_Gro_File=Mixture_Loop["Solute_Gro_File"]
+        Solute_Topology_File=Mixture_Loop["Solute_Topology_File"]
+        resnametop=Mixture_Loop["resnametop"]
+        resname=Mixture_Loop["resname"]
+        mol=Mixture_Loop["mol"]
+        
+        Gro_File=Gro_Builder.AA_Structure(mol,solute,resname) #solute #Rename this to handle UA and AA models rather than how I have been doing things..., get this to return
+        Box_Build='Yes'
+        
+
+    if Box_Build == 'Yes':
+    
+        L = advanced_settings["configuration"]["box_length_nm"]
+        solute_molecules=1
+        MD.run_md(Gro_File,Topology_File,L,initial_molecules,solresnametop,Mixture='Yes', MD='Vacuum') # Will need to modify the insert molecules for this step?
+        dipole_model=Analysis.get_dipole_model() #I have discovered that this step stops later steps from being able to use -v
+        print(dipole_model)
+    MD.run_md(Topology_File,Mixture='Yes', MD='Box')             #Just because they gave us a box I don't trust that they have minimised it well.
+    create_dir_Simulations()
+    rows = []
+    for i in replicas:
+        create_dir_reps(i)
+        for T in T_list:
+            create_dir_temps(T)
+            for p in P_list:
+                create_dir_press(p)
+                mdfile='Junk_2.mdp'
+                MD.run_md(mdpfile,HOMEDIR,system_title,T,p,Mixture='Yes', MD='Production')
+                exit_dir()
+            exit_dir()
+        exit_dir()
+    exit_dir()
+
+    #Same loop for MD and use mixture gaussian 
+    
+    
+    
+    

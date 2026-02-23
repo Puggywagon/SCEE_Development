@@ -161,12 +161,12 @@ class Gaussian_Calculations(object):
     
 ################################################################################
 ################################################################################
-    def get_multipole_statistics(self,rundir):
+    def get_multipole_statistics(self,dips_out,rundir):
         raw_dict = {}
-        case_dict = {1: 'dipole_l', 2: 'dipole_m', 3: 'dipole_h'}        
+        case_dict = {1: 'dipole_l', 2: 'dipole_m', 3: 'dipole_h'}      #This needs sorting.  
         for Q in range(1,4):
 #            print(Q)
-            filelist = glob.glob(rundir + f'*_c*_q{Q}_v1.out')
+            filelist = glob.glob(rundir + f'{dips_out}.out')
             for filename in filelist:
                 multipole = self.read_multipoles(filename)
                 config = filename.split('_')[-3].replace('c', '')
@@ -202,7 +202,7 @@ class Gaussian_Calculations(object):
         check_call(cmd, stdout=logfile, stderr=logfile)
 
 ################################################################################
-    def run_gaussian(self, step=0):
+    def run_gaussian(self, run_str, step=0):
 
         step_str = ''
         if (step == 1):
@@ -224,7 +224,7 @@ class Gaussian_Calculations(object):
         text += 'i=0' + '\n'
 
         # loop over all .dat files for this step (v0 or v1)
-        text += f'for datfile in $(ls *_c*_q?{step_str}.dat); do' + '\n'
+        text += f'for datfile in $(ls {run_str}{step_str}.dat); do' + '\n'
         text += '  outfile=${datfile%.dat}.out' + '\n'
         text += '  idx=$(( i % ${#SCRATCH_DIRS[@]} ))' + '\n'
         text += '  GAUSS_SCRDIR=${SCRATCH_DIRS[$idx]}' + '\n'
@@ -282,9 +282,10 @@ class Gaussian_Calculations(object):
         f = open(workdir + rundir+'Vacuum.dat', 'w')
         f.write(text)
         f.close()
-        self.run_gaussian(step=0)
-    
-        df4 = self.get_multipole_statistics(rundir)
+        run_str='Vacuum'
+        self.run_gaussian(run_str,step=0)
+        dips_out=run_str
+        df4 = self.get_multipole_statistics(dips_out,rundir)
         muG_list=df4.mean()
         df4['muG'] = muG_list
         df4.to_csv('Dipole_Vacuum.csv', index=False)
@@ -328,11 +329,11 @@ class Gaussian_Calculations(object):
         f = open(workdir + rundir+'PCM1.dat', 'w')
         f.write(text)
         f.close()
-        
-        
-        self.run_gaussian(step=0)
-          
-        df2 = self.get_multipole_statistics(rundir)
+                
+        run_str='PCM1'
+        self.run_gaussian(run_str,step=0)
+        dips_out=run_str
+        df4 = self.get_multipole_statistics(dips_out,rundir)
         muL_list1=df2.mean()
     
         df2['muL_PCM1'] = muL_list1
@@ -375,10 +376,12 @@ class Gaussian_Calculations(object):
         f = open(workdir + rundir+'PCM2.dat', 'w')
         f.write(text)
         f.close()
-        
-        PCM2.run_gaussian(step=0)
+                
+        run_str='PCM2'
+        self.run_gaussian(run_str,step=0)
 
-        df3 = self.get_multipole_statistics(rundir)
+        dips_out=run_str
+        df4 = self.get_multipole_statistics(dips_out,rundir)
         muL_list2=df3.mean()
    
         df3['muL_PCM2'] = muL_list2
@@ -420,7 +423,9 @@ class Gaussian_Calculations(object):
             f = open(datfile, 'w')
             f.write(text_str)
             f.close()
-        self.run_gaussian(step=0)
+                
+        run_str='*_c*_q?'
+        self.run_gaussian(run_str,step=0)
         
 ################################################################################
     def init4(self,ref_ind,Gaus='SCEE_V1', workdir='./'):
@@ -472,9 +477,11 @@ class Gaussian_Calculations(object):
             f = open(datfile, 'w')
             f.write(text_str)
             f.close()
-            
-        self.run_gaussian(step=1)
-        df1 = self.get_multipole_statistics(rundir)
+                
+        run_str='*_c*_q?'
+        self.run_gaussian(run_str,step=1)
+        dips_out=run_str+'_v1'
+        df4 = self.get_multipole_statistics(dips_out,rundir)
         print(df1.describe())
         print(df1.head())
         muL_list = []
