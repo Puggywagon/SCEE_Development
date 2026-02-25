@@ -1,0 +1,2 @@
+Molecule,N_total,N_kept,N_outliers,mean_D,std_D,median_D,IQR_lo,IQR_hi,q1,q3
+Aniline,999,930,69,2.2156,0.8961,1.9617,-0.9568,5.4055,1.5881,2.8606

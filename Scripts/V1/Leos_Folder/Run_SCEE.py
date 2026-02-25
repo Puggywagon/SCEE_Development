@@ -281,12 +281,12 @@ if pure_solvent == 'Yes':
         
         count+=1
           
-
     print(f'Plotting distribution for {solvent}')
+    IQR_K = 2.0
+    Analysis.write_filtered_data(k=IQR_K)
+    Analysis.plot_dipoledist(solvent,k=IQR_K)
+    Analysis.plot_dipoledist_filtered(solvent,k=IQR_K)
 
-    Analysis.write_filtered_data(k=1.5)
-    Analysis.plot_dipoledist(central)
-    Analysis.plot_dipoledist_filtered(central)
 
     plot_filtered = read_filtered_data()
     x_filtered = plot_filtered['mu_liquid'].astype(float).to_numpy()
@@ -296,8 +296,8 @@ if pure_solvent == 'Yes':
     collection={}
     collection = pd.DataFrame()
     collection['Solvent']                          = [f'{solvent}']
-    collection['Temperatures']                     = [T_list]
-    collection['Pressures']                        = [P_list]
+    collection['Temperatures']                     = T_list
+    collection['Pressures']                        = P_list
     collection['Replicas']                         = [count]
     collection['Number of Configurations']         = [len(plot['mu_liquid'])]
     collection['Number of Configurations Filtered']= [n_filtered]
@@ -305,11 +305,11 @@ if pure_solvent == 'Yes':
     collection['Scaling value 1']=[qr1]
     collection['Scaling value 2']=[qr2]
     collection['Scaling value 3']=[qr3]
-
+    
     collection['Scaled Charge 1']=[num1] 
     collection['Scaled Charge  2']=[num2]
     collection['Scaled Charge  3']=[num3]
-    Model_Dipole, Epsilon=Analysis.get_dipole_model_liquid(system_title)
+
     collection['Experimental Gas Dipole Moment']   = [gas_dipole]
     collection['Vacuum Dipole Moment Model']       = [dipole_model]
     collection['Liquid Dipole Moment Model']       = [Model_Dipole]
@@ -317,10 +317,10 @@ if pure_solvent == 'Yes':
     collection['Experimental Epsilon']             = [exp_diconst]
     collection['Model Epsilon']                    = [Epsilon]
     collection['cal_diconst']                      = [cal_diconst]
-    collection['mu_Vacuum']                        = [mu_Vacuum]
-    collection['PCM1']                             = [PCM1]
-    collection['PCM2']                             = [PCM2]
-
+    collection['mu_Vacuum']                        = [mu_Vacuum[0]]
+    collection['PCM1']                             = [PCM1[0]]
+    collection['PCM2']                             = [PCM2[0]]
+    
     # Unfiltered averages
     collection['muL_SCEE']                         = [plot['muL_SCEE'].mean()]
     collection['delta_mu']                         = [plot['delta_mu'].mean()]
@@ -329,7 +329,7 @@ if pure_solvent == 'Yes':
     x_all = plot['mu_liquid'].astype(float).to_numpy()
     finite_mask = np.isfinite(x_all)
     x_finite = x_all[finite_mask]
-    keep, out, _ = _iqr_masks(x_finite, k=1.5)
+    keep, out, (q1, q3, iqr, lo, hi) = Analysis._iqr_masks(x_finite, k=IQR_K)
     full_keep = np.zeros(len(x_all), dtype=bool)
     full_keep[finite_mask] = keep
     plot_filtered = plot[full_keep].copy()
@@ -338,9 +338,10 @@ if pure_solvent == 'Yes':
     mu_mean_unfiltered = replica_means.mean()
     collection['STDEV'] = replica_means.std(ddof=1)  # ddof=1 for sample std
     collection['SE']  = collection['STDEV'] / np.sqrt(count)
+    print(collection['mu_liquid'] > collection['Liquid Dipole Moment Model'])
 
-    if mu_liq > model_dip:
-        collection['Dielectric Constant Correction'] = (collection['Experimental Refractive Index']**2 +(collection['mu_liquid'] /collection['Liquid Dipole Moment Model']) * (collection['Model Epsilon'] + 1)
+    if collection['mu_liquid'][0] > Model_Dipole:
+        collection['Dielectric Constant Correction'] = (collection['Experimental Refractive Index']**2 +(collection['mu_liquid'] /collection['Liquid Dipole Moment Model']) *     (collection['Model Epsilon'] + 1))
     else:
         collection['Dielectric Constant Correction'] = np.nan
     # Filtered averages
@@ -355,9 +356,11 @@ if pure_solvent == 'Yes':
     collection['STDEV_filtered']  = replica_means_filt.std(ddof=1)
     collection['SE_filtered']  = collection['STDEV_filtered'] / np.sqrt(count)
 
-    if mu_liq_filt > model_dip:
-        collection['Dielectric Constant Correction Filtered'] = (collection['Experimental Refractive Index']**2 +(collection['mu_liquid_filtered'] /collection['Liquid Dipole Moment Model']) * (collection['Model Epsilon'] + 1)
+    if collection['mu_liquid_filtered'][0] > Model_Dipole:
+        collection['Dielectric Constant Correction Filtered'] = (collection['Experimental Refractive Index']**2 +(collection['mu_liquid_filtered'] /collection['Liquid Dipole Moment Model']) * (collection['Model Epsilon'] + 1))
     else:
         collection['Dielectric Constant Correction Filtered'] = np.nan
 
     collection.to_csv(f'../figures/vectors/Results_{solvent}.csv', index=False) 
+    print(f'Data saved in ../figures/vectors/Results_{solvent}.csv')
+    

@@ -1,0 +1,2 @@
+Molecule,N_total,N_kept,N_outliers,mean_D,std_D,median_D,IQR_lo,IQR_hi,q1,q3
+Butanol,185,168,17,2.0931,0.4323,2.0359,0.7171,3.416,1.7967,2.3364

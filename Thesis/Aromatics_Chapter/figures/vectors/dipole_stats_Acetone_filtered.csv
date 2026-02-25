@@ -1,0 +1,2 @@
+Molecule,N_total,N_kept,N_outliers,mean_D,std_D,median_D,IQR_lo,IQR_hi,q1,q3
+Acetone,200,199,1,3.448,0.3592,3.4201,2.2221,4.6373,3.1882,3.6712

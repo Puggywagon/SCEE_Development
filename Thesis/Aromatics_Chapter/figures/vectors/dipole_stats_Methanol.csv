@@ -1,0 +1,2 @@
+Molecule,N_total,N_kept,N_outliers,mean_D,std_D,median_D,IQR_lo,IQR_hi,q1,q3
+Methanol,200,200,0,2.0521,0.2859,2.0232,1.0564,3.015,1.8398,2.2316
