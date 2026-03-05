@@ -1,0 +1,15 @@
+;Include forcefield parameters
+#include "forcefield.itp"
+
+
+#include "Aniline_AA.itp"
+#include "Aniline_UA.itp"
+
+[ system ]
+; Name
+Aniline
+
+[ molecules ]
+; Compound        #mols
+Aniline           1
+Ani            1653

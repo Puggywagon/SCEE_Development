@@ -1,0 +1,13 @@
+;#include "oplsaa.ff/forcefield.itp"
+#include "TrappeFF_optimum.itp"
+
+
+#include "methanol_UA.itp"
+
+[ system ]
+; Name
+methanol
+
+[ molecules ]
+; Compound        #mols
+met           1

@@ -1,0 +1,40 @@
+;NVT equilibration
+; Run parameters
+integrator= md; leap-frog integrator
+nsteps= 100000000 ; 100 ns (because there is only one molecule we need a lot more time)
+dt= 0.002; 2 fs
+; Output control
+nstxout= 500; save coordinates every 1.0 ps
+nstvout= 500; save velocities every 1.0 ps
+nstenergy= 500; save energies every 1.0 ps
+nstlog= 500; update log file every 1.0 ps
+; Bond parameters
+continuation= no; first dynamics run
+constraint_algorithm    = lincs; holonomic constraints 
+constraints= h-bonds; all bonds (even heavy atom-H bonds) constrained
+lincs_iter= 1; accuracy of LINCS
+lincs_order= 4; also related to accuracy
+; Neighborsearching
+cutoff-scheme   = Verlet
+rlist               = 1         ; Cut-off distance for the short-range neighbor list.
+ns_type= simple; check every atom in the box when constructing a new neighbor list every nstlist steps
+nstlist= 100; 
+rcoulomb= 1; short-range electrostatic cutoff (in nm)
+rvdw= 1; short-range van der Waals cutoff (in nm)
+; Electrostatics
+coulombtype= cut-off ; Treatment of long range electrostatic interactions
+; Temperature coupling is on
+tcoupl= V-rescale; modified Berendsen thermostat
+tc-grps= System
+tau_t= 1; time constant, in ps
+ref_t= 298 ; reference temperature, one for each group, in K
+; Pressure coupling is off
+pcoupl= no ; no pressure coupling in NVT
+; Periodic boundary conditions
+pbc= xyz; Use no periodic boundary conditions, ignore the box. To simulate without cut-offs, set all cut-offs to 0 and nstlist=0.
+; Dispersion correction
+DispCorr= no; account for cut-off vdW scheme
+; Velocity generation
+gen_vel= yes; assign velocities from Maxwell distribution
+gen_temp= 298; temperature for Maxwell distribution
+gen_seed= -1; generate a random seed
