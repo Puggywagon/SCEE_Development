@@ -33,8 +33,8 @@ class Simulations_Analysis(object):
     def get_dipole_model_liquid(self): # Add in 
         gromacs.environment.flags['capture_output'] = True
         input_str = '0\n'
-        tmp = gromacs.tools.Dipoles(f=f'Pure_QMMM_md3.trr',
-                                s=f'Pure_QMMM_md3.tpr',
+        tmp = gromacs.tools.Dipoles(f=f'Simulations/replica_1/*K/*Bar/Pure_QMMM_md3.trr',
+                                s=f'Simulations/replica_1/*K/*Bar/Pure_QMMM_md3.tpr',
                                 input=input_str)
         chk, dipole_output, stderr = tmp.run()
 
@@ -50,6 +50,26 @@ class Simulations_Analysis(object):
         
         return Model_Dipole, Epsilon
 ################################################################################
+    def Sim_Density(self,system_title,i,T,p):
+        gromacs.environment.flags['capture_output'] = True
+        input_str = 'Density 0\n'
+        tmp = gromacs.tools.Energy(f=f'Simulations/replica_1/*K/*Bar/Pure_QMMM_md3.trr',
+                               s=f'Simulations/replica_1/*K/*Bar/Pure_QMMM_md3.trr',
+                               input=input_str)
+        chk, density_output, stderr = tmp.run()
+
+        f = open(f'Density.txt', 'w')
+        f.write(density_output)
+        f.close()
+
+        density_lines = density_output.splitlines()
+        density_line = density_lines[9]  # Assuming density is on the 5th line
+        density = float(density_line.split()[1])
+
+        Sim_Density=density
+        
+        return density
+############################################################################################################
     def read_data(self):
         csvfile_list = glob.glob(f'Simulations/replica_*/*/*/Dipole_Calculations.csv')
         df = pd.DataFrame()

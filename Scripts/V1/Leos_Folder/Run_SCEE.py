@@ -276,7 +276,8 @@ if pure_solvent == 'Yes':
         os.chdir(HOMEDIR)    
     
         df['replica'] = rundir  # or count if you prefer an integer label
-    
+        df['Simulation Density']=Analysis.Sim_Density()
+        df['Liquid Dipole Moment Model'],df['Model Epsilon']=Analysis.get_dipole_model_liquid()
         plot = pd.concat([plot, df], ignore_index=True)
         
         count+=1
@@ -309,13 +310,16 @@ if pure_solvent == 'Yes':
     collection['Scaled Charge 1']=[num1] 
     collection['Scaled Charge  2']=[num2]
     collection['Scaled Charge  3']=[num3]
+    
+    collection['Experimental Density']=[density]
+    collection['Simulation Density']=[plot['Simulation Density'].mean()]
 
     collection['Experimental Gas Dipole Moment']   = [gas_dipole]
     collection['Vacuum Dipole Moment Model']       = [dipole_model]
-    collection['Liquid Dipole Moment Model']       = [Model_Dipole]
+    collection['Liquid Dipole Moment Model']       = [plot['Liquid Dipole Moment Model'].mean()]
     collection['Experimental Refractive Index']    = [ref_ind]
     collection['Experimental Epsilon']             = [exp_diconst]
-    collection['Model Epsilon']                    = [Epsilon]
+    collection['Model Epsilon']                    = [plot['Model Epsilon'].mean()]
     collection['cal_diconst']                      = [cal_diconst]
     collection['mu_Vacuum']                        = [mu_Vacuum[0]]
     collection['PCM1']                             = [PCM1[0]]
