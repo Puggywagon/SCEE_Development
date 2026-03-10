@@ -54,14 +54,16 @@ Gro_File=Gro_Builder.AA_Structure(solmol,solvent,solresname) #solute #Rename thi
 
 ################################################################################
 ################################################################################
-qm = SCEE_Gaussian.SCEE_Gaussian()
+qm = SCEE_Gaussian.SCEE_Gaussian(config['User']['Gaussian'])
 
 # set location of Gaussian, etc.
-qm['max_jobs'] = config['User']['Gaussian']['max_jobs']
-qm['g09root'] = config['User']['Gaussian']['g09root']
-qm['GAUSS_SCRDIR'] = config['User']['Gaussian']['GAUSS_SCRDIR']
-qm['nproc'] = 8
-qm['mem'] = '5GB'
+print(qm['max_jobs'])
+
+print(qm['max_jobs'])
+print(qm['g09root'])
+print(qm['GAUSS_SCRDIR'])
+print(qm['nproc'])
+print(qm['mem'])
 
 
 # construct atom list
