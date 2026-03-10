@@ -6,6 +6,8 @@ import os
 import pandas as pd
 import subprocess
 
+import MDAnalysis
+
 import Atom
 
 
@@ -14,14 +16,30 @@ import Atom
 ################################################################################
 class SCEE_Gaussian(object):
 
-    def __init__(self):
+    def __init__(self, config):
 
         self.param = {}
         self.atom_list = []
         
         self.nproc = 8
+        self.param['nproc'] = 8
+        self.param['rundir'] = './opt_b3lypaug-cc-pvtz_spb3lyp/'
+        self.param['g09root'] ='/home/mjksill/Research/PhD/MacPherson/SCEE/Gaussian/g09_pgi/'
+        self.param['GAUSS_SCRDIR'] = '/home/mjksill/idrive/ProcessModelling/mjksill/scratch/'
+
+        self.param['basis_vacuum'] = '6-31+G(d,p)'
+        self.param['method_vacuum'] = 'b3lyp'
+        self.param['basis_v1'] = 'aug-cc-pvtz'
+        self.param['method_v1'] = 'blyp'
+
+
+        for key, value in config.items():
+            self.param[key] = value
+#            print(key, value)
         self.basis = 'aug-cc-pvtz'
         self.method = 'b3lyp'
+
+        
 
         self.rundir = './opt_b3lypaug-cc-pvtz_spb3lyp/'
         self.g09root='/home/mjksill/Research/PhD/MacPherson/SCEE/Gaussian/g09_pgi/'
@@ -99,7 +117,109 @@ class SCEE_Gaussian(object):
             print(text)
 
 
+################################################################################
+    def run_gaussian(self, run_str, step=0):
 
+        step_str = ''
+        if (step == 1):
+            step_str = '_v1'
+        
+        scratch_list_bash = ' '.join(self.scratch_dirs)
+
+        text  = '#!/bin/bash' + '\n'
+        text += f'cd {self.rundir}' + '\n'
+        text += f'export g09root={self.param["g09root"]}' + '\n'
+        text += 'source $g09root/g09/bsd/g09.profile' + '\n'
+
+        # scratch directories as a bash array (can be one or many)
+        scratch_list = ' '.join(self.scratch_dirs)
+        text += f'SCRATCH_DIRS=({scratch_list})' + '\n'
+
+        # global maximum number of Gaussian jobs allowed on this machine
+        text += f'MAXJOBS={self.max_jobs}' + '\n'
+        text += 'i=0' + '\n'
+
+        # loop over all .dat files for this step (v0 or v1)
+        text += f'for datfile in $(ls {run_str}{step_str}.dat); do' + '\n'
+        text += '  outfile=${datfile%.dat}.out' + '\n'
+        text += '  idx=$(( i % ${#SCRATCH_DIRS[@]} ))' + '\n'
+        text += '  GAUSS_SCRDIR=${SCRATCH_DIRS[$idx]}' + '\n'
+        text += '  echo "Preparing $datfile -> $outfile on $GAUSS_SCRDIR"' + '\n'
+
+        # --- GLOBAL THROTTLE: never exceed MAXJOBS g09 processes on this machine ---
+        text += '  while true; do' + '\n'
+        text += '      g09c=$(pgrep -c g09 2>/dev/null)\n'
+        text += '      mdc=$(pgrep -c mdrun 2>/dev/null)\n'
+        text += '      g09c=${g09c:-0}\n'
+        text += '      mdc=${mdc:-0}\n'
+        text += '      if [ $((g09c + mdc)) -lt "$MAXJOBS" ]; then\n'
+        text += '          break' + '\n'
+        text += '      fi' + '\n'
+        text += '      sleep 5' + '\n'
+        text += '  done' + '\n'
+
+        # launch Gaussian job in the background, with its own GAUSS_SCRDIR
+        text += '  GAUSS_SCRDIR=$GAUSS_SCRDIR g09 < "${datfile}" > "${outfile}" &' + '\n'
+        text += '  i=$((i+1))' + '\n'
+        text += 'done' + '\n'
+        text += 'wait' + '\n'
+
+        f = open(f'run_{step_str}.sh', 'w')
+        f.write(text)
+        f.close()
+
+        # make sure the script is executable (chmod 755)
+        os.chmod(f'run_{step_str}.sh', 0o755)
+
+        cmd = ['bash', f'run_{step_str}.sh']
+        check_call(cmd)
+
+            
+################################################################################
+################################################################################
+    def init_vacuum(self, workdir='./'):
+        sol_keyword = 'Ethanol'
+        rundir = 'SCEE_Gaussian_vacuum/'
+        text = f'%chk=Vacuum.chk\n'
+        text += f'%nprocshared={self.param["nproc"]}\n'
+        text += f'%mem={self.param["mem"]}\n'
+        text += f'#p {self.param["method_vacuum"]}/{self.param["basis_vacuum"]} gfprint fopt=tight' + '\n'
+        text += '# nosymm pop=full scf=(verytight) density=current\n'
+        text += '# integral=(ultrafine,NoXCTest)\n\n'
+        text += f'{sol_keyword}\n\n'
+        text += '0 1\n'
+
+        gro_data = MDAnalysis.Universe('./Ethanol_UA/nvt_vacuum2.gro')
+        for atom in gro_data.atoms:
+            x = atom.position[0]
+            y = atom.position[1]
+            z = atom.position[2]
+            text += f'{atom.resname:s} {x:9.4f} {y:8.4f} {z:8.4f}\n'
+        text += '\n'  
+
+#        if (not os.path.isdir(workdir + rundir)):
+#            os.mkdir(workdir + rundir)
+#            
+#        f = open(workdir + rundir+'Vacuum.dat', 'w')
+#        f.write(text)
+#        f.close()
+#        run_str='vacuum'
+#        self.run_gaussian(run_str,step=0)
+#        dips_out=run_str
+
+#        df4 = self.get_multipole_statistics(dips_out,rundir)
+#        muG_list=df4.mean()
+#        df4['muG'] = muG_list
+#        df4.to_csv('Dipole_Vacuum.csv', index=False)
+#        print(muG_list)
+#        
+#        mu_Vacuum=df4['muG']
+#        return mu_Vacuum
+
+        
+        print(text)
+        
+        
 ################################################################################
 ################################################################################
 ################################################################################

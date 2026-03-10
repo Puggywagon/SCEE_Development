@@ -22,6 +22,7 @@ User:
         g09root: /home/zoe/Software/Gaussian/g09_pgi #  executable
         GAUSS_SCRDIR: /home/zoe/Research/Gaussian/scratch # scratch directory
         max_jobs: 3 # How many jobs can you run at nproc=8
+        mem: 5GB
 
     Mode: Build_Gro # Options: Yes_Gro, No_Gro, Build_Gro
     Mixture_Loop: No # Options: Yes, No
