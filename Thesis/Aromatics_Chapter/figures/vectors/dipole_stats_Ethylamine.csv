@@ -1,0 +1,2 @@
+Molecule,N_total,N_kept,N_outliers,mean_D,std_D,median_D,IQR_lo,IQR_hi,q1,q3
+Ethylamine,200,194,6,1.5378,0.3528,1.4673,0.3164,2.7591,1.2935,1.782

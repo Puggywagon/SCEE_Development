@@ -1,0 +1,2 @@
+Molecule,N_total,N_kept,N_outliers,mean_D,std_D,median_D,IQR_lo,IQR_hi,q1,q3
+Acetophenone,1000,979,21,3.8355,0.7274,3.7273,1.3138,6.3041,3.3099,4.308

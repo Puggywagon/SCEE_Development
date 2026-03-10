@@ -1,0 +1,2 @@
+Molecule,N_total,N_kept,N_outliers,mean_D,std_D,median_D,IQR_lo,IQR_hi,q1,q3
+Ethanol,183,171,12,2.2816,0.4203,2.2341,1.0276,3.5286,2.028,2.5282

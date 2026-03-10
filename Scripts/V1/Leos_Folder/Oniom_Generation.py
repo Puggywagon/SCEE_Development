@@ -9,6 +9,55 @@ class Oniom_Generation(object):
     def __init__(self):
         pass
 ################################################################################
+    def expand_topology_with_itps(self,topology_file: str) -> str:
+        topology_path = Path(topology_file).resolve()
+        print(f'input string: {topology_file}; path={topology_path}')
+        seen = set()
+
+        def walk(self,file_path: Path) -> str:
+            file_path = file_path.resolve()
+    
+            if file_path in seen:
+                return ""
+            seen.add(file_path)
+    
+            text = file_path.read_text()
+            includes = Oniom_Generation.get_included_files(text)
+
+            blocks = []
+            if file_path.name != "forcefield.itp":
+                blocks.append(text)
+    
+            for inc in includes:
+                inc_path = (file_path.parent / inc).resolve()
+                if file_path.name == "forcefield.itp":
+                    if inc_path.name == "ffnonbonded.itp":
+                        blocks.append(inc_path.read_text())
+                    continue
+
+                blocks.append(walk(inc_path))
+
+            return "\n\n".join([b for b in blocks if b.strip()])
+        return walk(topology_path)
+################################################################################
+    def combine_group(self,g):
+        mu_i = g["mu_liquid"].to_numpy()
+        se_i = g["mu_se"].to_numpy()
+    
+        # Drop rows where se is missing
+        mask = np.isfinite(mu_i) & np.isfinite(se_i)
+        mu_i = mu_i[mask]
+        se_i = se_i[mask]
+    
+        N = len(mu_i)
+        if N == 0:
+            return pd.Series({"mu_liquid_mean": np.nan, "mu_liquid_se": np.nan})
+
+        mu_mean = mu_i.mean()
+        mu_se = np.sqrt(np.sum(se_i**2)) / N
+    
+        return pd.Series({"mu_liquid_mean": mu_mean, "mu_liquid_se": mu_se})
+################################################################################
     def QM_Inputs(self,Topology_File,Oniom,qr1,qr2,qr3):
         # Will need to add something that identifies what molecule is what?
         txt=Topology_File

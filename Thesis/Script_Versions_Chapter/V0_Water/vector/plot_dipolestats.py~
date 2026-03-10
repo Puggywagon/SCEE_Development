@@ -1,0 +1,122 @@
+#!/usr/bin/python3
+
+import argparse
+import gromacs
+import subprocess
+import numpy as np
+import os
+import pandas as pd
+import math
+import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
+
+import glob
+
+
+
+#fontsize = 22
+fontsize = 22
+ticksize = 16
+labelsize = 18
+
+
+
+################################################################################
+################################################################################
+################################################################################
+parser = argparse.ArgumentParser()
+
+parser.add_argument('--show', type=str, default='True', help='plot figures')
+
+args = parser.parse_args()
+
+show = (args.show == 'True')
+
+
+################################################################################
+################################################################################
+################################################################################
+T_list = [298, 400, 500, 600, 700, 800, 900, 1000]
+
+csvfile = '../../Replica_Dipoles/Dipoles2.csv'
+df = pd.read_csv(csvfile, header=None)
+df.columns = ['Temperature', 'Pressure', 'Dipoles','SE','std means']
+
+
+cmap = plt.cm.rainbow
+color_list = [cmap(x) for x in np.linspace(0.0, 1.0, len(T_list))]
+
+#fig= plt.subplots(figsize=(15, 12))
+fig = plt.figure()
+gs = GridSpec(nrows=2, ncols=1)
+ax1 = fig.add_subplot(gs[0,0])
+ax2 = fig.add_subplot(gs[1,0])
+ax1b = ax1.twinx()
+plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
+
+
+################################################################################
+for T, color in zip(T_list, color_list):
+    tmp = df[df['Temperature'] == T]
+    minval=tmp['SE']
+    maxval=tmp['SE']
+    corrections=tmp['Dipoles']/2.3054
+    yerr=[minval,maxval]
+    ax1.errorbar(tmp['Pressure'], tmp['Dipoles'], yerr=yerr, capsize=3, ecolor = "black", ls='none', color=color, marker='o')
+    ax1b.plot(tmp['Pressure'], corrections, ls='none', color=color, marker='s')
+    plt.plot([], [], ls='', color=color, marker='o',label=r'$T='+f'{T}$ K')
+    a,b=np.polyfit(tmp['Pressure'],tmp['Dipoles'],1)
+    x=tmp['Pressure']
+    ax1.plot(x,(a*x+b), ls='--',color=color)
+ax1b.set_ylabel(r'Dipole Moment / D',fontsize=fontsize)
+ax1.set_ylabel(r'$\bar{\mu}$ / D',fontsize=fontsize)
+ax1b.set_ylabel(r'$\bar{\mu} / \mu_{\rm TIP4P}$',fontsize=fontsize)
+ax1b.set_xlabel(r'Pressure / bar',fontsize=fontsize)
+ax1.tick_params(axis='x', which='both', labelsize=ticksize, labelbottom=False)
+ax1.tick_params(axis='y',which='both',labelsize=ticksize) 
+ax1b.tick_params(axis='y',which='both',labelsize=ticksize) 
+ax1.set_xscale('log')
+ax1.set_xlim([0.5, 1.0e4])
+mn,mx=ax1.set_ylim([1.6, 3.0])
+min_correction=mn/2.3054
+max_correction=mx/2.3054
+ax1b.set_ylim([min_correction, max_correction])
+
+
+################################################################################
+for T, color in zip(T_list, color_list):
+    tmp = df[df['Temperature'] == T]
+    ax2.plot(tmp['Pressure'],  tmp['std means'], ls='none', color=color, marker='o')
+    ax2.plot([], [], ls='', color=color, marker='o',label=r'$T='+f'{T}$ K')
+    a,b=np.polyfit(tmp['Pressure'],tmp['std means'],1)
+    x=tmp['Pressure']
+    ax2.plot(x,(a*x+b), ls='--',color=color)
+#ax2.set_ylabel(r'Dipole Moment Distribution Width / D',fontsize=fontsize)
+ax2.set_ylabel(r'$\sigma_\mu$ / D',fontsize=fontsize)
+ax2.set_xlabel(r'Pressure / bar',fontsize=fontsize)
+ax2.tick_params(axis='x', which='both', labelsize=ticksize, labelbottom=True)
+ax2.tick_params(axis='y', which='both', labelsize=ticksize)
+#plt.xticks(fontsize=ticksize)
+#plt.yticks(fontsize=ticksize) 
+ax2.set_xscale('log')
+ax2.set_xlim([0.5, 1.0e4])
+ax2.set_ylim([0, 0.4])
+
+
+
+################################################################################
+plt.tight_layout()
+
+plt.savefig('../dipole_statistics.pdf')
+plt.savefig('../dipole_statistics.png')
+
+if (show):
+    plt.show()
+else:    
+    plt.clf()
+
+
+
+################################################################################
+################################################################################
+################################################################################

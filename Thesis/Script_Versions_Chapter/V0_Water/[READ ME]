@@ -1,0 +1,28 @@
+--How to Run--
+Here is a short guide on what I have given you to run. You currently only have the script that performs the MD simulations using GROMACS and all the associated files that are needed to run this script. I will work on my scripts for obtaining the results and performing the analysis steps after these have been performed.
+
+Use the following in order to activate the script within the terminal. This can be nohup-ed to run away in the background.
+
+python3 MD_Simulations.py
+
+--How the script functions.--
+-Replica List-
+Replica_list is used to help number the directories with numbers of the replicate performed of the simulation. The loop here creates and enters the replicate directory and then performs the steps function, exiting the directory once completed.
+
+-Number of Steps-
+The Steps loop tells contains the number of steps and the number of timesteps of the simulation. The number of steps is carried through to generate the MDP file later on in the process while the timestep is used to ensure the correct simulation length is being performed within the time loop. 
+
+-Simulation Length (Time)-
+The Time loop is used to generate a directory with the length of the simulation. This contains an if/else function where it checks that the simulation will be performed at the right length of time and saved in the correct directory. This was for if we were doing 10ns runs it would know to only do the 5000000 steps. This was to avoid accidentally overwriting the data obtained for the 5 ns. In addition to this, we create a plot of P vs T containing the experiemental and model equilibration lines. This plot is used later to produce the plot that shows where the simulation pressure points lie in comparison to these lines and will act as a means of monitoring the progress of the script if needed. Then the script moves through the temperature loop and closes the plot so not to accidentally override the plot with the next plot.
+
+-Temperature-
+In the temperature step we create our list of temperatures. We start at 298K for standard temperature conditions and then have two loops for temperature. The first ranges from 400k to 1000K in 100K increments. The second ranges from 273K to 373K in 10K increments. This was to cover a large range of temperatures that has been included in some of the papers we have seen in the literature so far. Following this, the script will create and enter the temperature directory (T in T_list) and then run through the pressure steps. It carries through steps, time and temperature through to the next section. Following this the script will leave the temperature directory to start working on the next temperature.
+
+-Pressure-
+This step creates a the list of pressure points. We use the loop to create our list in the pattern of 1.0Bar, 2.0Bar, 5.0Bar, 10.0Bar etc. Then through looping p in P_list the script creates and enters the directory performs the necessary MD steps and and leaves the directory. We also update the P vs T plot created in the Time step. This will show an empty circle if the simulation is in progress and then a filled circle after moving on from that circle.
+
+--The MD Steps--
+The step labelled run_project contains all the steps used for performing the MD steps. First we create the mdpfile using steps, temperature and pressure as variables copied into the file which is saved in the Pressure directory, this step is performed in create_mdpfile.  run_md then runs the simulation using the mdpfile generated in the previous step. The trajectory is processed, outputing our conf_.gro files which are then processed.
+
+
+

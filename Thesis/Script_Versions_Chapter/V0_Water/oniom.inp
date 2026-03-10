@@ -1,0 +1,34 @@
+1 #What am I?
+TIP4P2005 #Gonna use this for automation of full sim steps... got ideas of asking a user for an input of the simulation title to fill these
+1.5 #?
+
+4 1 #?
+O  OW 3.1589 0.7749 -1.00000 -1.40000 -1.80000 0 # I understand where most of these numbers come from. Is the first letter specific for gaussian atom types? The last numbers noting which are dummy charge for the model as this row isn't in the methanol oniom?
+H  HW 0.2673 0.0418  0.50000  0.70000  0.90000 0
+H  HW 0.2673 0.0418  0.50000  0.70000  0.90000 0
+Bq MW 0.0000 0.0000  0.00000  0.00000  0.00000 1
+  2  2  3 #Not sure on where these come from?    
+  0 
+  0 
+  0 
+
+4 1
+O  OW 3.1589 0.7749  0.00000  0.00000  0.00000
+H  HW 0.2673 0.0418  0.50000  0.70000  0.90000
+H  HW 0.2673 0.0418  0.50000  0.70000  0.90000
+Bq MW 0.0000 0.0000 -1.00000 -1.40000 -1.80000
+  3  2  3  4   
+  0
+  0
+  0
+899
+
+7 #I interpret these to being bond potential/interactions but not sure where they all come from...
+VDW MW    0.00000000         0.00000000    
+VDW OW    1.77287261        0.185205545    
+VDW HW   0.150017053         9.99043975E-03
+HrmStr1 OW HW 200000.0 0.9572
+HrmStr1 OW MW 200000.0 0.1546
+HrmBnd1 HW OW HW 1000.0 104.52
+HrmBnd1 HW OW MW 1000.0 52.26
+

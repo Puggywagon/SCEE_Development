@@ -6,7 +6,6 @@ import pandas as pd
 import re
 from subprocess import check_call
 import os
-from dat_generation import Dat_Generation
 import numpy as np
 
 
@@ -28,6 +27,54 @@ class Gaussian_Calculations(object):
         self.method_v0 = 'b3lyp'
         self.basis_v1 = 'aug-cc-pvtz'
         self.method_v1 = 'blyp'
+#################################################################################      
+    def gro_to_dat(self):
+        f=open('nvt_vacuum2.gro')
+        gro_file = f.readlines()        
+        f.close()
+        gro_file=gro_file[2:]
+        gro_file=gro_file[:-1]
+        gro_dict=self.get_gro(gro_file)  
+        gro_df=pd.DataFrame(gro_dict)
+        gro_df.columns=['Residue','gro_atom','atom_number','x','y','z','Vel x','Vel y','Vel z']
+        dat_atoms=[]
+        dat_xs=[]
+        x_mean=gro_df['x'].mean()
+        dat_ys=[]
+        y_mean=gro_df['y'].mean()
+        dat_zs=[]
+        z_mean=gro_df['z'].mean()
+        for index, row in gro_df.iterrows():
+            Gros=gro_df.iloc[index]['gro_atom']
+            dat_atom=Atoms.Atom_Types(Gros,Masses=0)
+            dat_x=gro_df.iloc[index]['x']
+            dat_x=(dat_x-x_mean)*10
+            dat_y=gro_df.iloc[index]['y']
+            dat_y=(dat_y-y_mean)*10
+            dat_z=gro_df.iloc[index]['z']
+            dat_z=(dat_z-z_mean)*10
+            print(f'{dat_x},{dat_y},{dat_z}')
+            dat_atoms.append(dat_atom)
+            dat_xs.append(dat_x)
+            dat_ys.append(dat_y)
+            dat_zs.append(dat_z)
+        return dat_atoms,dat_xs,dat_ys,dat_zs
+#################################################################################            
+    def get_gro(self,gro_file):
+        gro_dict = []                
+        for line in gro_file:
+            data = line.split()
+            gro_dicts = {'Residue': data[0],
+                         'gro_atoms': data[1],
+                         'atom_number': data[2],
+                         'x': float(data[3]),
+                         'y': float(data[4]),
+                         'z': float(data[5]),
+                         'Vel x': float(data[6]),
+                         'Vel y': float(data[7]),
+                         'Vel z': float(data[8])}
+            gro_dict.append(gro_dicts)
+        return gro_dict
 ################################################################################
     def read_multipoles(self, filename):
 #        outfile = '../TIP4P/tmp/opt_b3lypaug-cc-pvtz_spb3lyp/TIP4P2005_c1_q1_v1.out'
@@ -112,15 +159,14 @@ class Gaussian_Calculations(object):
         
         return multipole
     
-            
 ################################################################################
 ################################################################################
-    def get_multipole_statistics(self,rundir):
+    def get_multipole_statistics(self,dips_out,rundir):
         raw_dict = {}
-        case_dict = {1: 'dipole_l', 2: 'dipole_m', 3: 'dipole_h'}        
+        case_dict = {1: 'dipole_l', 2: 'dipole_m', 3: 'dipole_h'}      #This needs sorting.  
         for Q in range(1,4):
 #            print(Q)
-            filelist = glob.glob(rundir + f'*_c*_q{Q}_v1.out')
+            filelist = glob.glob(rundir + f'{dips_out}.out')
             for filename in filelist:
                 multipole = self.read_multipoles(filename)
                 config = filename.split('_')[-3].replace('c', '')
@@ -156,7 +202,7 @@ class Gaussian_Calculations(object):
         check_call(cmd, stdout=logfile, stderr=logfile)
 
 ################################################################################
-    def run_gaussian(self, step=0):
+    def run_gaussian(self, run_str, step=0):
 
         step_str = ''
         if (step == 1):
@@ -178,7 +224,7 @@ class Gaussian_Calculations(object):
         text += 'i=0' + '\n'
 
         # loop over all .dat files for this step (v0 or v1)
-        text += f'for datfile in $(ls *_c*_q?{step_str}.dat); do' + '\n'
+        text += f'for datfile in $(ls {run_str}{step_str}.dat); do' + '\n'
         text += '  outfile=${datfile%.dat}.out' + '\n'
         text += '  idx=$(( i % ${#SCRATCH_DIRS[@]} ))' + '\n'
         text += '  GAUSS_SCRDIR=${SCRATCH_DIRS[$idx]}' + '\n'
@@ -214,9 +260,9 @@ class Gaussian_Calculations(object):
         
 
 ################################################################################
-    def init(self,sol_keyword,Gaus='Vacuum', workdir='./'):
+    def init0(self,sol_keyword,Gaus='Vacuum', workdir='./'):
         rundir = 'Vacuum/'
-        dat_atoms,dat_xs,dat_ys,dat_zs=self.dat_generation.gro_to_dat()
+        dat_atoms,dat_xs,dat_ys,dat_zs=self.gro_to_dat()
         
         text = f'%chk=Vacuum.chk\n'
         text += f'%nprocshared={self.nproc}\n'
@@ -236,9 +282,10 @@ class Gaussian_Calculations(object):
         f = open(workdir + rundir+'Vacuum.dat', 'w')
         f.write(text)
         f.close()
-        self.run_gaussian(step=0)
-    
-        df4 = Vacuum.get_multipole_statistics(rundir)
+        run_str='Vacuum'
+        self.run_gaussian(run_str,step=0)
+        dips_out=run_str
+        df4 = self.get_multipole_statistics(dips_out,rundir)
         muG_list=df4.mean()
         df4['muG'] = muG_list
         df4.to_csv('Dipole_Vacuum.csv', index=False)
@@ -247,9 +294,9 @@ class Gaussian_Calculations(object):
         mu_Vacuum=df4['muG']
         return mu_Vacuum
 ################################################################################
-    def init(self,sol_keyword,exp_diconst,Gaus='PCM1', workdir='./'):
+    def init1(self,sol_keyword,exp_diconst,Gaus='PCM1', workdir='./'):
         rundir = 'PCM1/'
-        dat_atoms,dat_xs,dat_ys,dat_zs=self.dat_generation.gro_to_dat()
+        dat_atoms,dat_xs,dat_ys,dat_zs=self.gro_to_dat()
                 
         text = f'%chk=PCM1.chk\n'
         text += f'%nprocshared={self.nproc}\n'
@@ -282,11 +329,11 @@ class Gaussian_Calculations(object):
         f = open(workdir + rundir+'PCM1.dat', 'w')
         f.write(text)
         f.close()
-        
-        
-        self.run_gaussian(step=0)
-          
-        df2 = PCM1.get_multipole_statistics(rundir)
+                
+        run_str='PCM1'
+        self.run_gaussian(run_str,step=0)
+        dips_out=run_str
+        df4 = self.get_multipole_statistics(dips_out,rundir)
         muL_list1=df2.mean()
     
         df2['muL_PCM1'] = muL_list1
@@ -294,9 +341,9 @@ class Gaussian_Calculations(object):
         PCM1= df2['muL_PCM1']
         return PCM1
 ################################################################################
-    def init(self,sol_keyword,cal_diconst,Gaus='PCM2', workdir='./'):
+    def init2(self,sol_keyword,cal_diconst,Gaus='PCM2', workdir='./'):
         rundir = 'PCM2/'
-        dat_atoms,dat_xs,dat_ys,dat_zs=self.dat_generation.gro_to_dat()
+        dat_atoms,dat_xs,dat_ys,dat_zs=self.gro_to_dat()
 
         
         text = f'%chk=PCM2.chk' + '\n'        
@@ -329,10 +376,12 @@ class Gaussian_Calculations(object):
         f = open(workdir + rundir+'PCM2.dat', 'w')
         f.write(text)
         f.close()
-        
-        PCM2.run_gaussian(step=0)
+                
+        run_str='PCM2'
+        self.run_gaussian(run_str,step=0)
 
-        df3 = PCM2.get_multipole_statistics(rundir)
+        dips_out=run_str
+        df4 = self.get_multipole_statistics(dips_out,rundir)
         muL_list2=df3.mean()
    
         df3['muL_PCM2'] = muL_list2
@@ -341,7 +390,7 @@ class Gaussian_Calculations(object):
         
         return PCM2
 ################################################################################
-    def init(self,Gaus='SCEE_V0', workdir='./'):
+    def init3(self,Gaus='SCEE_V0', workdir='./'):
     
         rundir = 'SCEE/'
         
@@ -370,15 +419,16 @@ class Gaussian_Calculations(object):
             f = open(inpfile, 'r')
             text_str += f.read()
             f.close()
-#            print(text_str)
 
             f = open(datfile, 'w')
             f.write(text_str)
             f.close()
-        self.run_gaussian(step=0)
+                
+        run_str='*_c*_q?'
+        self.run_gaussian(run_str,step=0)
         
 ################################################################################
-    def init(self,ref_ind,Gaus='SCEE_V1', workdir='./'):
+    def init4(self,ref_ind,Gaus='SCEE_V1', workdir='./'):
         rundir = 'SCEE/'
 
         text  = f'%nprocshared={self.nproc}\n'
@@ -427,9 +477,11 @@ class Gaussian_Calculations(object):
             f = open(datfile, 'w')
             f.write(text_str)
             f.close()
-            
-        self.run_gaussian(step=1)
-        df1 = Molecule.get_multipole_statistics(rundir)
+                
+        run_str='*_c*_q?'
+        self.run_gaussian(run_str,step=1)
+        dips_out=run_str+'_v1'
+        df4 = self.get_multipole_statistics(dips_out,rundir)
         print(df1.describe())
         print(df1.head())
         muL_list = []

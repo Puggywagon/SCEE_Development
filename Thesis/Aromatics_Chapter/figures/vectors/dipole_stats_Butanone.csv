@@ -1,0 +1,2 @@
+Molecule,N_total,N_kept,N_outliers,mean_D,std_D,median_D,IQR_lo,IQR_hi,q1,q3
+Butanone,200,196,4,3.4702,0.4624,3.3472,1.9935,4.9067,3.1587,3.7414
