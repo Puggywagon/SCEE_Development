@@ -1,0 +1,13 @@
+;Include forcefield parameters
+#include "forcefield.itp"
+
+
+#include "EthaneDiol.itp"
+
+[ system ]
+; Name
+EthaneDiol
+
+[ molecules ]
+; Compound        #mols
+EthaneDiol          1
