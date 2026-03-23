@@ -22,7 +22,7 @@ echo "plot_density.py"
 
 echo "plot_dipolestats.py"
 #python ./plot_dipolestats.py --show False
-python ./plot_dipoledist.py --show False
+#python ./plot_dipoledist.py --show False
 #python ./plot_dipoledistliq.py --show False
 #python ./dipdist_nHB.py --show False
 #python ./dipdist_donor.py --show False
@@ -31,28 +31,28 @@ python ./plot_dipoledist.py --show False
 #python ./plot_SCEE_PCM.py --show False
 
 echo "plot_rdf.py --T 298"
-#python ./plot_rdf.py --T 298 --show False
+python ./plot_rdf.py --T 298 --show False
 
 echo "plot_rdf.py --T 500"
-#python ./plot_rdf.py --T 500 --show False
+python ./plot_rdf.py --T 500 --show False
 
 echo "plot_rdf.py --T 700"
-#python ./plot_rdf.py --T 700 --show False
+python ./plot_rdf.py --T 700 --show False
 
 echo "plot_rdf.py --T 600"
-#python ./plot_rdf.py --T 600 --show False
+python ./plot_rdf.py --T 600 --show False
 
 echo "plot_rdf.py --T 800"
-#python ./plot_rdf.py --T 800 --show False
+python ./plot_rdf.py --T 800 --show False
 
 echo "plot_rdf.py --T 400"
-#python ./plot_rdf.py --T 400 --show False
+python ./plot_rdf.py --T 400 --show False
 
 echo "plot_rdf.py --T 900"
-#python ./plot_rdf.py --T 900 --show False
+python ./plot_rdf.py --T 900 --show False
 
 echo "plot_rdf.py --T 1000"
-#python ./plot_rdf.py --T 1000 --show False
+python ./plot_rdf.py --T 1000 --show False
 
 echo "plot_hydrogenbond.py"
 #python ./plot_hydrogenbond.py --show False

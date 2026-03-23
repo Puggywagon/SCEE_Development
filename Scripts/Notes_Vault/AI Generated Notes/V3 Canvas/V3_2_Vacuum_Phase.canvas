@@ -1,0 +1,38 @@
+{
+	"nodes":[
+		{"id":"run_g","type":"text","text":"### `run_gaussian(run_str)` — shared across all `Gaussian_Calculations` methods\n1. Write bash script iterating over `.dat` files\n2. Check count of running `g09` + `mdrun` processes\n3. If below `MAXJOBS` → launch `g09 < file.dat > file.out &`\n4. `wait` for all jobs\n\nScratch directories now a round-robin array (`SCRATCH_DIRS`).","x":-220,"y":1240,"width":440,"height":340,"color":"3"},
+		{"id":"title","type":"text","text":"# V3 — Section 2: Vacuum Phase\n`Gro_Simulations.py` · `Gaussian_Calculations.py` · `Atoms.py` · `Simulations_Analysis.py`","x":-240,"y":-1520,"width":440,"height":140,"color":"1"},
+		{"id":"inputs","type":"text","text":"### Inputs\n- `{Gro_File}` — from Section 1 (or user-provided)\n- `{Topology_File}` — user-supplied topology\n- `minim_vacuum.mdp`, `nvt_vacuum.mdp`\n- `Settings.yml`: `Di_Const`, `Ref_Ind`, `g09root`, `GAUSS_SCRDIR`, `max_jobs`, `box_length_nm`\n\n`cal_diconst = exp_diconst − ref_ind² + 1`\n\n⚠️ `sol_keyword` and `exp_diconst` referenced in `Run_SCEE.py` but not yet wired from YAML (WIP bug).","x":-240,"y":-1340,"width":440,"height":320,"color":"2"},
+		{"id":"md1","type":"text","text":"### `Gro_Simulations.run_md1(Gro_File, Topology_File, L, ...)`\n1. `gromacs.editconf` — set box to L + 1.7 nm\n2. Vacuum EM (`minim_vacuum.mdp`) → `em.gro`\n3. Vacuum NVT (`nvt_vacuum.mdp`) → `nvt_vacuum2.gro`\n4. Calls `insert_Molecules` and `Write_to_top` at end\n\nOnly called when `Box_Build == 'Yes'`.","x":-240,"y":-940,"width":440,"height":300,"color":"3"},
+		{"id":"md1_note","type":"text","text":"**V2 → V3:** `_wait_for_md_slot()` job throttle removed. `insert_Molecules` and `Write_to_top` now called at end of `run_md1` rather than separately. Method is mode-gated (`Box_Build == 'Yes'`).","x":320,"y":-1120,"width":320,"height":200,"color":"3"},
+		{"id":"dipole_model","type":"text","text":"### `Simulations_Analysis.get_dipole_model()`\n`gromacs.tools.Dipoles` on `nvt_vacuum2` → `Dipole.txt`\nParses line 8 → returns `dipole_model`\n\nUsed for charge scaling ratio: `ratio = Model_Dipole_liquid / qmax`","x":-240,"y":-540,"width":440,"height":240,"color":"6"},
+		{"id":"dat","type":"text","text":"### `Gaussian_Calculations.gro_to_dat()`\nConverts `nvt_vacuum2.gro` → Gaussian `.dat` format:\n1. Parse `.gro` into DataFrame\n2. Centre coordinates on mean (subtract mean x/y/z)\n3. Multiply by 10 (nm → Å)\n4. Calls `Atoms.Atom_Types(Gros, Masses=0)` → element symbols\n\n⚠️ WIP bug: `Masses=0` passed instead of actual mass list — mass-based fallback in `Atoms` cannot work.","x":-240,"y":-200,"width":440,"height":330,"color":"3"},
+		{"id":"dat_note","type":"text","text":"**V2 → V3:** `dat_generation.py` absorbed into `Gaussian_Calculations`. Hardcoded `if/elif` atom name map replaced by `Atoms.Atom_Types()` — more robust resolution including two-letter elements and mass fallback.","x":300,"y":-420,"width":320,"height":210,"color":"3"},
+		{"id":"atoms","type":"text","text":"### `Atoms.Atom_Types(Gros, Masses)`\nResolution strategy (in order):\n1. Dummy prefix (MW, EP, VS, LP, DUM → `Bq`)\n2. NA ambiguity → resolve by mass (N vs Na, tol=1.5)\n3. Two-letter element from first two chars (e.g. `CL` → `Cl`)\n4. One-letter element from first char\n5. Mass fallback across all supported elements (tol=1.0)\n\nReturns `Gro_List`, `Gaus_List`, `Dummy_List`, `Total_Atoms`","x":-240,"y":240,"width":440,"height":360,"color":"3"},
+		{"id":"atoms_note","type":"text","text":"**V2 → V3:** Entirely new module. Replaces ~30-entry hardcoded `if/elif` chains in `dat_generation.py` and `Oniom_Generation.py`. Handles two-letter elements and ambiguous names that V2 could not.","x":360,"y":33,"width":320,"height":207,"color":"3"},
+		{"id":"vacuum","type":"text","text":"### `Gaussian_Calculations.init0(sol_keyword, Gaus='Vacuum')`\nSingle-step geometry optimisation:\n- B3LYP/6-31+G(d,p) `fopt=tight`\n\nWrites to `Vacuum/Vacuum.dat`\nSubmits via bash throttle → `g09`\n`get_multipole_statistics()` → returns `mu_Vacuum`\n\n⚠️ WIP: `get_multipole_statistics` Q-loop bug means `dipole_l/m/h` will be identical (single job — no functional impact here).","x":-860,"y":670,"width":400,"height":370,"color":"3"},
+		{"id":"vacuum_note","type":"text","text":"**V2 → V3:** Two-step `--Link1--` geometry optimisation replaced with single-step. Run directory renamed from `opt-test_vacuum/` to `Vacuum/`.","x":-1340,"y":775,"width":320,"height":160,"color":"3"},
+		{"id":"pcm1","type":"text","text":"### `Gaussian_Calculations.init1(sol_keyword, exp_diconst, Gaus='PCM1')`\nTwo-step via `--Link1--` (unchanged from V2):\n- Step 1: B3LYP/cc-pVTZ, `scrf=(pcm,solvent={sol_keyword},read)`, `eps={exp_diconst}`\n- Step 2: B3LYP/aug-cc-pVTZ from checkpoint\n\n`get_multipole_statistics()` → returns `PCM1`\n\n⚠️ WIP bug: calls into `df4` then references `df2` — carry-over from split-class V2 structure.","x":-380,"y":725,"width":440,"height":335,"color":"6"},
+		{"id":"pcm2","type":"text","text":"### `Gaussian_Calculations.init2(sol_keyword, cal_diconst, Gaus='PCM2')`\nIdentical to `init1` but uses `cal_diconst` (optical ε).\n\n`cal_diconst = exp_diconst − ref_ind² + 1`\n\n`get_multipole_statistics()` → returns `PCM2`\n\n⚠️ WIP bug: same `df3` reference issue as `init1`.","x":340,"y":670,"width":400,"height":310,"color":"6"},
+		{"id":"run_g_note","type":"text","text":"**V2 → V3:** `run_gaussian` now takes `run_str` parameter for flexible file globbing. Scratch directory support expanded from single path to round-robin array across multiple directories.","x":530,"y":1250,"width":320,"height":180,"color":"3"},
+		{"id":"outputs","type":"text","text":"### Outputs\n- `em.gro`, `nvt_vacuum2.gro` — vacuum MD structures\n- `Dipole.txt` — raw GROMACS dipole output\n- `Vacuum/Vacuum.out` — Gaussian vacuum output\n- `PCM1/PCM1.out`, `PCM2/PCM2.out`\n- `Dipole_Vacuum.csv`, `Dipole_PCM1.csv`, `Dipole_PCM2.csv`\n- `dipole_model` — FF vacuum dipole (scalar)\n- `mu_Vacuum`, `PCM1`, `PCM2` — reference dipoles","x":-220,"y":1640,"width":440,"height":320,"color":"2"}
+	],
+	"edges":[
+		{"id":"e1","fromNode":"inputs","fromSide":"bottom","toNode":"md1","toSide":"top"},
+		{"id":"e2","fromNode":"md1","fromSide":"bottom","toNode":"dipole_model","toSide":"top"},
+		{"id":"e3","fromNode":"dipole_model","fromSide":"bottom","toNode":"dat","toSide":"top"},
+		{"id":"e4","fromNode":"dat","fromSide":"bottom","toNode":"atoms","toSide":"top"},
+		{"id":"e5","fromNode":"atoms","fromSide":"bottom","toNode":"vacuum","toSide":"top"},
+		{"id":"e6","fromNode":"atoms","fromSide":"bottom","toNode":"pcm1","toSide":"top"},
+		{"id":"e7","fromNode":"atoms","fromSide":"bottom","toNode":"pcm2","toSide":"top"},
+		{"id":"e8","fromNode":"vacuum","fromSide":"bottom","toNode":"run_g","toSide":"top"},
+		{"id":"e9","fromNode":"pcm1","fromSide":"bottom","toNode":"run_g","toSide":"top"},
+		{"id":"e10","fromNode":"pcm2","fromSide":"bottom","toNode":"run_g","toSide":"top"},
+		{"id":"e11","fromNode":"run_g","fromSide":"bottom","toNode":"outputs","toSide":"top"},
+		{"id":"ec1","fromNode":"md1","fromSide":"right","toNode":"md1_note","toSide":"left"},
+		{"id":"ec2","fromNode":"dat","fromSide":"right","toNode":"dat_note","toSide":"left"},
+		{"id":"ec3","fromNode":"atoms","fromSide":"right","toNode":"atoms_note","toSide":"left"},
+		{"id":"ec4","fromNode":"vacuum","fromSide":"left","toNode":"vacuum_note","toSide":"right"},
+		{"id":"ec5","fromNode":"run_g","fromSide":"right","toNode":"run_g_note","toSide":"left"}
+	]
+}

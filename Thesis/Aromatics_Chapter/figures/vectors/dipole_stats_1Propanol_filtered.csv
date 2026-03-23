@@ -1,0 +1,2 @@
+Molecule,N_total,N_kept,N_outliers,mean_D,std_D,median_D,IQR_lo,IQR_hi,q1,q3
+Propanol,190,180,10,2.2045,0.3561,2.2579,0.9464,3.4065,1.9304,2.4225

@@ -1,0 +1,19 @@
+{
+	"nodes":[
+		{"id":"title","type":"text","text":"# V2 — Section 1: Building the Molecule\n`Gro_Builder.py`","x":-220,"y":-600,"width":440,"height":80,"color":"1"},
+		{"id":"inputs","type":"text","text":"### Inputs\n- `mol` — SMILES of solute\n- `system_title` — output name stem\n- `resname` — residue name for AA `.gro`\n- `solmol` — SMILES of solvent\n- `solresname` — residue name for UA `.gro`\n\n*(All hardcoded in `Run_SCEE.py`)*","x":-220,"y":-480,"width":440,"height":260,"color":"2"},
+		{"id":"aa","type":"text","text":"### `AA_Structure(mol, system_title, resname)`\n1. `Chem.MolFromSmiles()` → RDKit mol object\n2. `Chem.AddHs()` → explicit hydrogens\n3. `AllChem.EmbedMolecule()` → 3D conformation (distance geometry)\n4. `AllChem.UFFOptimizeMolecule()` → UFF geometry optimisation\n5. Save 2D depiction as `{system_title}.png`\n6. Write `{system_title}_AA.gro`\n   - Coordinates ÷ 10 (Å → nm)\n   - Box size = 0.0","x":-560,"y":-160,"width":380,"height":420,"color":"6"},
+		{"id":"ua","type":"text","text":"### `UA_Structure(solmol, system_title, solresname)`\n1. Same RDKit pipeline as `AA_Structure`\n2. Calls `Functional_Group()` — result unused\n3. `skips` counter tracks omitted H atoms — **never incremented in practice**\n4. Write `{system_title}_UA.gro`\n\n⚠️ Output is functionally identical to AA — true united-atom representation not implemented.","x":120,"y":-160,"width":380,"height":340,"color":"6"},
+		{"id":"note2","type":"text","text":"📝 Topology file is NOT generated here. The user must supply a consistent `.top`/`.itp` separately.","x":-220,"y":960,"width":440,"height":100,"color":"2"},
+		{"id":"note1","type":"text","text":"📝 Box dimensions are all `0.0` at this stage. Proper box size is assigned in `Pre_Eq_Simulations.Pre_Eq_Solute()` using `gromacs.editconf` (box = L + 1.7 nm).","x":-220,"y":780,"width":440,"height":140,"color":"2"},
+		{"id":"outputs","type":"text","text":"### Outputs\n- `{system_title}_AA.gro` — all-atom coordinate file\n- `{system_title}_UA.gro` — united-atom file (functionally same as AA)\n- `{system_title}.png` — 2D molecule depiction","x":-220,"y":540,"width":440,"height":200,"color":"2"},
+		{"id":"fg","type":"text","text":"### `Functional_Group(solmol)`\nSMART pattern matching classifies molecule by functional group:\n\nEster > Aldehyde > Amine (3°/2°/1°) > Thiol > Ether > Alcohol (2°/3°/1°) > Diol > Amino Acid > Phenol > Aniline > Benzene > Carbons only\n\n⚠️ Called by `UA_Structure` but return value is never used.","x":120,"y":200,"width":380,"height":300,"color":"6"}
+	],
+	"edges":[
+		{"id":"e1","fromNode":"inputs","fromSide":"bottom","toNode":"aa","toSide":"top"},
+		{"id":"e2","fromNode":"inputs","fromSide":"bottom","toNode":"ua","toSide":"top"},
+		{"id":"e3","fromNode":"ua","fromSide":"bottom","toNode":"fg","toSide":"top"},
+		{"id":"e4","fromNode":"aa","fromSide":"bottom","toNode":"outputs","toSide":"top"},
+		{"id":"e5","fromNode":"fg","fromSide":"bottom","toNode":"outputs","toSide":"top"}
+	]
+}
