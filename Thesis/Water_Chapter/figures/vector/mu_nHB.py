@@ -31,8 +31,8 @@ csvfile = '../../TIP4P_Results/data_2.csv'
 ################################################################################
 ################################################################################
 ################################################################################
-df = pd.read_csv(csvfile, header=None)
-df.columns = ['Time', 'Temperature', 'Pressure', 'Density','Epsilon','Number of HBonds','Percentage of H-bonds','Nearest Neighbour','Dipole Moment','State','donors','acceptors','nHB','Cluster']
+df = pd.read_csv(csvfile, header=0)
+df.columns = ['Time', 'Temperature', 'Pressure', 'Density','Epsilon','Number of HBonds','Percentage of H-bonds','Nearest Neighbour','Dipole Moment','State','donors','acceptors','nHB']
 print(df)
 
 nHB_min, nHB_max = 0, 4

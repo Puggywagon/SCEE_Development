@@ -38,7 +38,7 @@ cmap = plt.cm.rainbow
 color_list = [cmap(x) for x in np.linspace(0.0, 1.0, len(T_list))]
  
 # Side-by-side layout — extra width on right for the legend
-fig, ax = plt.subplots(1, 2, figsize=(7.5, 3.5))
+fig, ax = plt.subplots(1, 2, figsize=(7.0, 3.5))
 ax1 = ax[0]
 ax2 = ax[1]
  

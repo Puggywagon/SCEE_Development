@@ -30,19 +30,12 @@ class Hbond_Analysis_Average(object):
         return mdonors, macceptors, mnHB      
 ######################################################
     def Cluster_Analysis(self,data):
-        columns=['Time', 'Temperature', 'Pressure', 'Density','Epsilon','Number of HBonds','Percentage of H-bonds','Nearest Neighbour','Dipole Moment','State','donors','acceptors','nHB','Clusters']
+        columns=['Time', 'Temperature', 'Pressure', 'Density','Epsilon','Number of HBonds','Percentage of H-bonds','Nearest Neighbour','Dipole Moment','State','donors','acceptors','nHB']
         df = pd.read_csv("../TIP4P_Results/5ns/Analysis/data.csv",header=None, names=columns)
 
         df['donors']=data['donors']
         df['acceptors']=data['acceptors']
         df['nHB']=data['nHB']
-        clusters={'clusters': []}
-        for i in range(0,len(df)):
-            nhb=df['nHB']
-            ner_neh=df['Nearest Neighbour']
-            cluster=nhb[i]/ner_neh[i]
-            clusters['clusters'].append(cluster)
-        df['Clusters']=pd.DataFrame(clusters)
 
         df.to_csv("../TIP4P_Results/data_2.csv", index=False,header=True)
 ######################################################

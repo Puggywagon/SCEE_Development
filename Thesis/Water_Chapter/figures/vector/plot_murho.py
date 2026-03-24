@@ -41,7 +41,7 @@ df.columns = ['Temperature', 'Pressure', 'Density', 'Volume','Internal Energy','
 
 cmap = plt.cm.rainbow
 color_list = [cmap(x) for x in np.linspace(0.0, 1.0, len(T_list))]
-plt.figure(figsize=(3.5, 3))
+plt.figure(figsize=(5.5, 3.5))
 
 
 for T, color in zip(T_list, color_list):

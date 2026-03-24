@@ -73,7 +73,7 @@ df_sim = pd.read_csv(tip4p_csvfile)
 
 ################################################################################
 cmap = plt.cm.rainbow
-fig, ax = plt.subplots(figsize=[3.5, 3])
+fig, ax = plt.subplots(figsize=[5.5, 3.5])
 
 for index, row in df.iterrows():
     n_HB = row['Nearest']

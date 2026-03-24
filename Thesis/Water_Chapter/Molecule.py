@@ -32,16 +32,16 @@ class Molecule(object):
             for Aj in mj.acceptor_list:
                 dpos = self.box.get_dposition(Di.position, Aj.position)
                 dpos0 = self.box.get_dposition(Di.position, D0.position)
-        dot=0.0; d=0.0; d0=0.0;
-        for i in range(len(dpos)):
-            dot += dpos[i]*dpos0[i]
-            d += dpos[i]*dpos[i]
-            d0 += dpos0[i]*dpos0[i]
-        d = np.sqrt(d)
-        d0 = np.sqrt(d0)
-        dot /= d*d0
-        if (d < self.HBcutoff and dot < self.HBdot):
-            return True
+                dot=0.0; d=0.0; d0=0.0;
+                for i in range(len(dpos)):
+                    dot += dpos[i]*dpos0[i]
+                    d += dpos[i]*dpos[i]
+                    d0 += dpos0[i]*dpos0[i]
+                d = np.sqrt(d)
+                d0 = np.sqrt(d0)
+                dot /= d*d0
+                if (d < self.HBcutoff and dot < self.HBdot):
+                    return True
         
         return False
 
@@ -53,13 +53,13 @@ class Molecule(object):
               dpos = self.box.get_dposition(Dj.position, Ai.position)
               dpos0 = self.box.get_dposition(Dj.position, D0.position)
               dot=0.0; d=0.0; d0=0.0;
-          for i in range(len(dpos)):
-              dot += dpos[i]*dpos0[i]
-              d += dpos[i]*dpos[i]
-              d0 += dpos0[i]*dpos0[i]
-          d = np.sqrt(d); d0 = np.sqrt(d0); dot /= d*d0;
-          if (d < self.HBcutoff and dot < self.HBdot):
-              return True;        
+              for i in range(len(dpos)):
+                  dot += dpos[i]*dpos0[i]
+                  d += dpos[i]*dpos[i]
+                  d0 += dpos0[i]*dpos0[i]
+              d = np.sqrt(d); d0 = np.sqrt(d0); dot /= d*d0;
+              if (d < self.HBcutoff and dot < self.HBdot):
+                  return True;        
         return False
 
     

@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "2. Using the Vacuum Phase.md",
+                "file": "Cecilia's Thesis.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "2. Using the Vacuum Phase"
+              "title": "Cecilia's Thesis"
             }
           }
         ]
@@ -185,8 +185,10 @@
   },
   "active": "6de25e99b27f32ca",
   "lastOpenFiles": [
-    "3. The Production Run.md",
+    "Vault_Details.md",
+    "Cecilia's Thesis.md",
     "2. Using the Vacuum Phase.md",
+    "3. The Production Run.md",
     "1. Building a Molecule.md",
     "0. Introduction.md",
     "SCEE_Pathway_DIagram_V0.canvas",
@@ -213,7 +215,6 @@
     "AI Generated Notes/3_Production_Run.md",
     "AI Generated Notes/2_Vacuum_Phase.md",
     "AI Generated Notes/1_Building_the_Molecule.md",
-    "Vault_Details.md",
     "Welcome.md"
   ]
 }
