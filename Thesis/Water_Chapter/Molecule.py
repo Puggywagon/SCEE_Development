@@ -15,7 +15,7 @@ class Molecule(object):
         self.ID = ID
     
         angle = 150.0 * np.pi/180.0
-        self.HBcutoff = 0.24
+        self.HBcutoff = 0.35
         self.HBdot = np.cos(angle)
         self.particle_list = []
         self.acceptor_list = []

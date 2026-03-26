@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Cecilia's Thesis.md",
+                "file": "Issue with Basis Set Plan.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Cecilia's Thesis"
+              "title": "Issue with Basis Set Plan"
             }
           }
         ]
@@ -180,28 +180,39 @@
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "bases:Create new base": false
+      "bases:Create new base": false,
+      "tasknotes:Open mini calendar": false,
+      "tasknotes:Open advanced calendar": false,
+      "tasknotes:Open task list": false,
+      "tasknotes:Open agenda": false,
+      "tasknotes:Open kanban board": false,
+      "tasknotes:Open pomodoro": false,
+      "tasknotes:Open pomodoro stats": false,
+      "tasknotes:Create new task": false
     }
   },
   "active": "6de25e99b27f32ca",
   "lastOpenFiles": [
-    "Vault_Details.md",
-    "Cecilia's Thesis.md",
+    "Aromatics ⛔ 3893up.md",
+    "Alcohols ⛔ 9t8svu.md",
+    "Issue with Basis Set Plan.md",
+    "TaskNotes/Views/relationships.base",
+    "TaskNotes/Views/agenda-default.base",
+    "TaskNotes/Views/calendar-default.base",
+    "TaskNotes/Views/tasks-default.base",
+    "TaskNotes/Views/kanban-default.base",
+    "TaskNotes/Views/mini-calendar-default.base",
+    "TaskNotes/Views",
+    "TaskNotes",
     "2. Using the Vacuum Phase.md",
     "3. The Production Run.md",
+    "Cecilia's Thesis.md",
+    "Vault_Details.md",
     "1. Building a Molecule.md",
     "0. Introduction.md",
     "SCEE_Pathway_DIagram_V0.canvas",
     "Other_Inputs/template_2.mdp",
     "Other_Inputs/template.mdp",
-    "Other_Inputs/oplsaaff.itp",
-    "Other_Inputs/oniom.inp",
-    "Other_Inputs/nvt_vacuum.mdp",
-    "Other_Inputs/nvt.mdp",
-    "Other_Inputs/npt.mdp",
-    "Other_Inputs/minim_vacuum.mdp",
-    "Other_Inputs/minim.mdp",
-    "Other_Inputs/atomtypes.atp",
     "AI Generated Notes/V3 Canvas/V3_Overview.canvas",
     "AI Generated Notes/V3 Canvas/V3_4_Analysis.canvas",
     "AI Generated Notes/V3 Canvas/V3_2_Vacuum_Phase.canvas",
