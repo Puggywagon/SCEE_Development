@@ -1,0 +1,31 @@
+{
+	"nodes":[
+		{"id":"title","type":"text","text":"# V2 — Section 3: Production Run\n`Pre_Eq_Simulations.py` · `MD_Simulations.py` · `Oniom_Generation.py` · `Shell_Oniom.f90` · `SCEE.py`","x":-220,"y":-1260,"width":440,"height":120,"color":"1"},
+		{"id":"inputs","type":"text","text":"### Inputs\n- `nvt_vacuum2.gro` — equilibrated solute (from Section 2)\n- `{central}_AA.top`, `{central}_AA.itp`, `{solvent}_UA.itp`, `oplsaaff.itp`\n- `minim.mdp`, `nvt.mdp`, `npt.mdp`, `template_2.mdp`\n- density, mol_mass, L → compute `initial_molecules`\n- qr1, qr2, qr3 — charge scaling ratios\n- Configurations, Cut_Off_Radius, replicas, T, P","x":-220,"y":-1100,"width":440,"height":340,"color":"2"},
+		{"id":"mol_count","type":"text","text":"### Molecule Count\n`N = (density × (L×1e-7)³ / mol_mass) × 6.022e23`\n`initial_molecules = ceil(N + 0.05N) − 1`\n\n5% excess for failed insertions. −1 because solute already present.","x":-220,"y":-720,"width":440,"height":220,"color":"4"},
+		{"id":"insert","type":"text","text":"### `Pre_Eq_Simulations.insert_Molecules()`\n`gromacs.insert_molecules` — packs `initial_molecules` copies of `{solvent}_UA.gro` around solute in `nvt_vacuum2.gro` → `out.gro`","x":-220,"y":-460,"width":440,"height":180,"color":"4"},
+		{"id":"write_top","type":"text","text":"### `Pre_Eq_Simulations.Write_to_top()`\nAppends to `[molecules]` section of topology:\n`{solresnametop}    {initial_molecules}`","x":-220,"y":-220,"width":440,"height":120,"color":"4"},
+		{"id":"box_eq","type":"text","text":"### `Pre_Eq_Simulations.Pre_Eq_System(system_title)`\n1. `minim.mdp` → EM → `em1.gro`\n2. `nvt.mdp` → NVT equil → `nvt_eq.gro`\n3. `npt.mdp` → NPT equil → `{system_title}.gro`\n\nStarting point for all production replicas.","x":-220,"y":-60,"width":440,"height":220,"color":"4"},
+		{"id":"oniom_gen","type":"text","text":"### `Oniom_Generation`\n`Gen_File()` — writes header: N_configs, output stem, cutoff radius\n`QM_Inputs()` — solute block: reads charges from `[atoms]` via itp + LJ from `oplsaaff.itp`. Computes 3 scaled charge sets (qr1/2/3). Returns `qmax`.\n`MM_Inputs()` — solvent block: same logic from `{solvent}_UA.itp`\n`Counting_Molecules()` — appends total solvent mol count\n→ writes `oniom.inp`\n\n⚠️ `get_atomtypes` expects 7-column format only.","x":-220,"y":220,"width":440,"height":360,"color":"4"},
+		{"id":"prod_md","type":"text","text":"### `MD_Simulations.run_md()` (per replica/T/P)\n1. Fill `template_2.mdp` placeholders (TEMPERATURE, PRESSURE) → `junk.mdp`\n2. `gromacs.grompp` + `gromacs.mdrun` → `{system_title}_QMMM_md3.xtc/.edr/.gro`\n\n`template_2.mdp` uses c-rescale barostat.\n`template_1.mdp` (Parrinello-Rahman) available for unstable molecules.","x":-220,"y":620,"width":440,"height":300,"color":"4"},
+		{"id":"traj","type":"text","text":"### `MD_Simulations.process_trajectory()`\n`gromacs.tools.Trjconv` on `.xtc`:\n- `pbc=whole` — make molecules whole\n- `b=1000` — skip first 1000 ps\n- `dt=20` — one frame every 20 ps\n→ `conf_0.gro` ... `conf_N.gro`","x":-220,"y":960,"width":440,"height":220,"color":"4"},
+		{"id":"shell","type":"text","text":"### `Shell_Oniom.f90` (via `process_gro()`)\n`gfortran -o Shell_Oniom Shell_Oniom.f90 && ./Shell_Oniom`\n\nFor each `conf_N.gro`:\n1. Read `oniom.inp` — control params, solute/solvent blocks\n2. Apply PBC, centre on solute central atom\n3. nm → Å (×10), σ × 0.561231, ε ÷ 4.184\n4. Select solvent molecules within Rcut1\n5. Even/odd correction — remove furthest mol if count is even (Gaussian bug)\n6. Write 6 files per config:\n   - `{solvent}_cN_q1/2/3.inp` — ONIOM geometry (H+L layers)\n   - `{solvent}_cN_q1/2/3_chg.inp` — point charge coords only","x":-220,"y":1240,"width":440,"height":520,"color":"4"},
+		{"id":"outputs","type":"text","text":"### Outputs\n- `out.gro`, `em1.gro`, `nvt_eq.gro`, `{system_title}.gro` — box equilibration structures\n- `{system_title}_QMMM_md3.xtc/.edr/.gro` — production trajectory\n- `conf_0.gro` ... `conf_N.gro` — extracted frames\n- `oniom.inp` — Shell_Oniom configuration file\n- `{solvent}_cN_q1/2/3.inp`, `_chg.inp` — per-config ONIOM inputs\n- `SCEE/` — Gaussian V0 and V1 `.dat` / `.out` files\n- `Dipole_SCEE.csv` — `dipole_l`, `dipole_m`, `dipole_h` per config","x":-220,"y":2420,"width":440,"height":400,"color":"2"},
+		{"id":"scee_v1","type":"text","text":"### `SCEE.init_v1()` — single-point charge embedding\nExtracts QM geometry from Z-matrix of V0 `.out` file (regex on Z-Matrix orientation block).\n`Atom_Symbol(atomic_number)` converts atomic number → element symbol.\n\nRoute: `{method}/{basis} charge`\nSolvent charges from `_chg.inp` embedded as point charges.\n\n`get_multipole_statistics()` globs `*_c*_q{Q}_v1.out` for Q=1,2,3 → `dipole_l`, `dipole_m`, `dipole_h` per config","x":220,"y":1860,"width":400,"height":380,"color":"4"},
+		{"id":"scee_v0","type":"text","text":"### `SCEE.init_v0()` — ONIOM geometry optimisation\nRoute: `oniom(B3LYP/6-31+G(d,p):amber=(print,SoftFirst,LastEquiv))=embedcharge`\nOptions: `opt=quadmacro iop(1/98=66,1/19=7)`\nCharge/spin: `0 1 0 1 0 1`\n\nOne `.dat` per `{solvent}_cN_q?.inp`. Writes to `opt-test-SCEE/`.\nSubmitted via bash throttle script → `g09`","x":-700,"y":1900,"width":400,"height":300,"color":"4"}
+	],
+	"edges":[
+		{"id":"e1","fromNode":"inputs","fromSide":"bottom","toNode":"mol_count","toSide":"top"},
+		{"id":"e2","fromNode":"mol_count","fromSide":"bottom","toNode":"insert","toSide":"top"},
+		{"id":"e3","fromNode":"insert","fromSide":"bottom","toNode":"write_top","toSide":"top"},
+		{"id":"e4","fromNode":"write_top","fromSide":"bottom","toNode":"box_eq","toSide":"top"},
+		{"id":"e5","fromNode":"box_eq","fromSide":"bottom","toNode":"oniom_gen","toSide":"top"},
+		{"id":"e6","fromNode":"oniom_gen","fromSide":"bottom","toNode":"prod_md","toSide":"top"},
+		{"id":"e7","fromNode":"prod_md","fromSide":"bottom","toNode":"traj","toSide":"top"},
+		{"id":"e8","fromNode":"traj","fromSide":"bottom","toNode":"shell","toSide":"top"},
+		{"id":"e9","fromNode":"shell","fromSide":"bottom","toNode":"scee_v0","toSide":"top"},
+		{"id":"e10","fromNode":"shell","fromSide":"bottom","toNode":"scee_v1","toSide":"top"},
+		{"id":"e11","fromNode":"scee_v0","fromSide":"bottom","toNode":"outputs","toSide":"top"},
+		{"id":"e12","fromNode":"scee_v1","fromSide":"bottom","toNode":"outputs","toSide":"top"}
+	]
+}

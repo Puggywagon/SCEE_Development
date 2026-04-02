@@ -1,0 +1,28 @@
+{
+	"nodes":[
+		{"id":"md1","type":"text","text":"### `Pre_Eq_Simulations.Pre_Eq_Solute(central, L)`\n1. `gromacs.editconf` — set box size to L + 1.7 nm\n2. `gromacs.grompp` + `gromacs.mdrun` — vacuum EM (`minim_vacuum.mdp`) → `em.gro`\n3. `gromacs.grompp` + `gromacs.mdrun` — vacuum NVT (`nvt_vacuum.mdp`) → `nvt_vacuum2.gro`\n\n`_wait_for_md_slot()` throttles combined g09 + mdrun job count below `max_heavy_jobs`.","x":-220,"y":-320,"width":440,"height":300,"color":"3"},
+		{"id":"dipole_model","type":"text","text":"### `Pre_Eq_Simulations.get_dipole_model()`\n`gromacs.tools.Dipoles` on `nvt_vacuum2` trajectory → `Dipole.txt`\nParses line 8 → returns `dipole_model` (FF vacuum dipole moment).\n\nUsed later to compute charge scaling ratio: `ratio = Model_Dipole_liquid / qmax`","x":-220,"y":20,"width":440,"height":260,"color":"3"},
+		{"id":"title","type":"text","text":"# V2 — Section 2: Vacuum Phase\n`Pre_Eq_Simulations.py` · `dat_generation.py` · `Vacuum.py` · `PCM1.py` · `PCM2.py`","x":-220,"y":-800,"width":440,"height":120,"color":"1"},
+		{"id":"inputs","type":"text","text":"### Inputs\n- `{central}_AA.gro` — from Section 1\n- `{central}_AA.top` — user-supplied topology\n- `minim_vacuum.mdp`, `nvt_vacuum.mdp` — MDP templates\n- `sol_keyword` — Gaussian PCM solvent keyword\n- `exp_diconst` — experimental dielectric constant\n- `ref_ind` — experimental refractive index\n- `cal_diconst = exp_diconst − ref_ind² + 1` — optical dielectric constant","x":-220,"y":-660,"width":440,"height":300,"color":"2"},
+		{"id":"dat","type":"text","text":"### `dat_generation.Dat_Generation.gro_to_dat()`\nConverts `nvt_vacuum2.gro` → Gaussian `.dat` format:\n1. Parse `.gro` into DataFrame\n2. Centre coordinates on mean (subtract mean x/y/z)\n3. Multiply by 10 (nm → Å)\n4. Map GROMACS atom names → element symbols via hardcoded `if/elif` chain (~30 types)\n   e.g. `'CA'` → `'C'`, `'NH'` → `'N'`, `'MW'` → `'Bq'`","x":-220,"y":320,"width":440,"height":300,"color":"3"},
+		{"id":"pcm2","type":"text","text":"### `PCM2.init_v0(system_title, sol_keyword, cal_diconst)`\nIdentical structure to PCM1 but uses `cal_diconst` (optical ε) instead of `exp_diconst`.\n\n`cal_diconst = exp_diconst − ref_ind² + 1`\n\nCaptures electronic-only dielectric response.\n\n`get_multipole_statistics()` → returns `PCM2`","x":280,"y":780,"width":400,"height":300,"color":"3"},
+		{"id":"pcm1","type":"text","text":"### `PCM1.init_v0(system_title, sol_keyword, exp_diconst)`\nTwo-step job via `--Link1--`:\n- Step 1: B3LYP/cc-pVTZ single-point, `scrf=(pcm,solvent={sol_keyword},read)`, `eps={exp_diconst}`\n- Step 2: B3LYP/aug-cc-pVTZ single-point from checkpoint\n\nDipole from step 2 (aug-cc-pVTZ) is used.\n\n`get_multipole_statistics()` → returns `PCM1`","x":-200,"y":780,"width":400,"height":360,"color":"3"},
+		{"id":"vacuum","type":"text","text":"### `Vacuum.init_v0(system_title, sol_keyword)`\nTwo-step job via `--Link1--`:\n- Step 1: B3LYP/6-31+G(d,p) `fopt=tight` geometry opt\n- Step 2: B3LYP/6-31+G(d,p) `fopt=tight` from checkpoint (`geom=checkpoint`)\n\nWrites `opt-test_vacuum/nvt_vacuum.dat` → bash throttle script → `g09`\n\n`get_multipole_statistics()` reads `.out` → returns `mu_Vacuum`","x":-700,"y":780,"width":400,"height":380,"color":"3"},
+		{"id":"run_g","type":"text","text":"### `run_gaussian(step)` — shared pattern across all classes\n1. Write bash script iterating over `.dat` files in run dir\n2. Check count of running `g09` + `mdrun` processes\n3. If below `MAXJOBS` → launch `g09 < file.dat > file.out &`\n4. `wait` for all jobs to finish\n\nSingle scratch directory (hardcoded per machine).","x":-260,"y":1320,"width":440,"height":300,"color":"3"},
+		{"id":"outputs","type":"text","text":"### Outputs\n- `em.gro`, `nvt_vacuum2.gro` — vacuum MD structures\n- `Dipole.txt` — raw GROMACS dipole output\n- `opt-test_vacuum/nvt_vacuum.out` — Gaussian vacuum output\n- `Dipole_Vacuum.csv`, `Dipole_PCM1.csv`, `Dipole_PCM2.csv`\n- `dipole_model` — FF vacuum dipole (scalar)\n- `mu_Vacuum`, `PCM1`, `PCM2` — reference dipoles (scalar each)","x":-260,"y":1760,"width":440,"height":340,"color":"2"},
+		{"id":"note1","type":"text","text":"📝 HO/HN/HW hydrogens get hardcoded LJ params (σ=0.2673 Å, ε=0.0418 kJ/mol) because OPLS-AA assigns zero LJ to polar hydrogens, which would cause issues in ONIOM.","x":-260,"y":2160,"width":440,"height":120,"color":"2"},
+		{"id":"note2","type":"text","text":"📝 In the Aniline run all `init_v0` and `Pre_Eq_Solute` calls are commented out — the script reads back results from already-completed runs. This is the standard workflow after the first run.","x":-260,"y":2360,"width":440,"height":120,"color":"2"}
+	],
+	"edges":[
+		{"id":"e1","fromNode":"inputs","fromSide":"bottom","toNode":"md1","toSide":"top"},
+		{"id":"e2","fromNode":"md1","fromSide":"bottom","toNode":"dipole_model","toSide":"top"},
+		{"id":"e3","fromNode":"dipole_model","fromSide":"bottom","toNode":"dat","toSide":"top"},
+		{"id":"e4","fromNode":"dat","fromSide":"bottom","toNode":"vacuum","toSide":"top"},
+		{"id":"e5","fromNode":"dat","fromSide":"bottom","toNode":"pcm1","toSide":"top"},
+		{"id":"e6","fromNode":"dat","fromSide":"bottom","toNode":"pcm2","toSide":"top"},
+		{"id":"e7","fromNode":"vacuum","fromSide":"bottom","toNode":"run_g","toSide":"top"},
+		{"id":"e8","fromNode":"pcm1","fromSide":"bottom","toNode":"run_g","toSide":"top"},
+		{"id":"e9","fromNode":"pcm2","fromSide":"bottom","toNode":"run_g","toSide":"top"},
+		{"id":"e10","fromNode":"run_g","fromSide":"bottom","toNode":"outputs","toSide":"top"}
+	]
+}

@@ -1,0 +1,2 @@
+Molecule,N_total,N_kept,N_outliers,mean_D,std_D,median_D,IQR_lo,IQR_hi,q1,q3
+Phenol,1048,986,62,2.063,0.6095,1.9311,-0.0737,4.1862,1.6303,2.4823

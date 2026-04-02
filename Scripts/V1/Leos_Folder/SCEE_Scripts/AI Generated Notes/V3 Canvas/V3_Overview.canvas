@@ -1,0 +1,28 @@
+{
+	"nodes":[
+		{"id":"outputs","type":"text","text":"### Outputs\n- `mu_liquid` — liquid-phase dipole moment (D)\n- `Dipole_Calculations.csv` — per-config results (per replica)\n- `Dipole_Calculations_filtered.csv`\n- `dipole_distribution_{solvent}.png/.pdf`\n- `dipole_stats_{solvent}.csv`\n- `Results_{solvent}.csv` — full summary table\n- `Density.txt` — simulation density *(new in V3)*","x":-220,"y":750,"width":440,"height":290,"color":"2"},
+		{"id":"title","type":"text","text":"# SCEE Pipeline — V3\n### Self-Consistent Electrostatic Embedding\nWork in progress. Restructured into fewer, more general classes. User inputs now in `Settings.yml`.","x":-220,"y":-800,"width":440,"height":200,"color":"1"},
+		{"id":"inputs_note","type":"text","text":"All inline hardcoded variables replaced by `Settings.yml`. Three run modes now supported:\n- `Build_Gro` — generate `.gro` from SMILES\n- `No_Gro` — user provides `.gro`, build box\n- `Yes_Gro` — user provides `.gro` and pre-built box","x":320,"y":-800,"width":340,"height":270,"color":"3"},
+		{"id":"s1_note","type":"text","text":"UA structure generation removed entirely. `AA_Structure` now returns the filename. Generation is mode-gated — not always called.","x":320,"y":-510,"width":340,"height":130,"color":"3"},
+		{"id":"s2","type":"text","text":"## 2. Vacuum Phase\n`Gro_Simulations.py` · `Gaussian_Calculations.py` · `Atoms.py` · `Simulations_Analysis.py`\n\nVacuum EM + NVT. `init0` (Vacuum, single-step), `init1` (PCM1), `init2` (PCM2). Extracts `mu_Vacuum`, `PCM1`, `PCM2`.","x":-220,"y":-110,"width":440,"height":220,"color":"3"},
+		{"id":"inputs","type":"text","text":"### User Inputs\n- `Settings.yml` — all user settings\n- Topology file (mode-dependent: provided or auto-built)\n- MDP template files\n- `Shell_Oniom.f90`","x":-220,"y":-580,"width":440,"height":220,"color":"3"},
+		{"id":"s1","type":"text","text":"## 1. Building the Molecule\n`Gro_Builder.py`\n\nAA `.gro` from SMILES using RDKit. Only triggered when `Mode: Build_Gro`. Returns filename for downstream use.","x":-220,"y":-340,"width":440,"height":200,"color":"3"},
+		{"id":"s2_note","type":"text","text":"`Vacuum.py`, `PCM1.py`, `PCM2.py`, `dat_generation.py` all merged into `Gaussian_Calculations.py`. `Atoms.py` replaces hardcoded `if/elif` atom name maps. Vacuum optimisation simplified from two-step (`--Link1--`) to single-step.","x":320,"y":-280,"width":340,"height":200,"color":"3"},
+		{"id":"s3","type":"text","text":"## 3. Production Run\n`Gro_Simulations.py` · `Oniom_Generation.py` · `Shell_Oniom.f90` · `Gaussian_Calculations.py`\n\n`run_md2` (box equil, always runs) → `run_md3` (production + traj extraction + Shell_Oniom) → `init3` (ONIOM V0) → `init4` (single-point V1 + SCEE fitting). Topology resolved via `expand_topology_with_itps`.","x":-220,"y":140,"width":440,"height":250,"color":"3"},
+		{"id":"s3_note","type":"text","text":"`Pre_Eq_Simulations`, `MD_Simulations`, `SCEE` merged into `Gro_Simulations` + `Gaussian_Calculations`. Separate `.itp` files no longer required — topology resolved in memory via `expand_topology_with_itps`. `run_md2` always runs regardless of mode. SCEE charge scaling moved into `init4`.","x":320,"y":0,"width":340,"height":265,"color":"3"},
+		{"id":"s4","type":"text","text":"## 4. Analysis & Data Saving\n`Simulations_Analysis.py` · `Run_SCEE.py`\n\n`mu_liquid` per config → IQR filtering → distribution plots → `Results_{solvent}.csv`. Simulation density now captured.","x":-220,"y":435,"width":440,"height":185,"color":"3"},
+		{"id":"s4_note","type":"text","text":"All analysis functions moved out of `Run_SCEE.py` into `Simulations_Analysis.py` class. SCEE polynomial fitting moved into `Gaussian_Calculations.init4`. Simulation density added as new observable. Output paths changed from absolute to relative (`../figures/`).","x":320,"y":315,"width":340,"height":225,"color":"3"}
+	],
+	"edges":[
+		{"id":"e1","fromNode":"inputs","fromSide":"bottom","toNode":"s1","toSide":"top"},
+		{"id":"e2","fromNode":"s1","fromSide":"bottom","toNode":"s2","toSide":"top"},
+		{"id":"e3","fromNode":"s2","fromSide":"bottom","toNode":"s3","toSide":"top"},
+		{"id":"e4","fromNode":"s3","fromSide":"bottom","toNode":"s4","toSide":"top"},
+		{"id":"e5","fromNode":"s4","fromSide":"bottom","toNode":"outputs","toSide":"top"},
+		{"id":"ec1","fromNode":"inputs","fromSide":"right","toNode":"inputs_note","toSide":"left"},
+		{"id":"ec2","fromNode":"s1","fromSide":"right","toNode":"s1_note","toSide":"left"},
+		{"id":"ec3","fromNode":"s2","fromSide":"right","toNode":"s2_note","toSide":"left"},
+		{"id":"ec4","fromNode":"s3","fromSide":"right","toNode":"s3_note","toSide":"left"},
+		{"id":"ec5","fromNode":"s4","fromSide":"right","toNode":"s4_note","toSide":"left"}
+	]
+}

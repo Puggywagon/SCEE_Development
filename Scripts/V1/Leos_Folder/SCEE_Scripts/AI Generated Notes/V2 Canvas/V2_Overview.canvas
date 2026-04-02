@@ -1,0 +1,18 @@
+{
+	"nodes":[
+		{"id":"title","type":"text","text":"# SCEE Pipeline — V2\n### Self-Consistent Electrostatic Embedding\nAniline case study. All user inputs hardcoded inline in `Run_SCEE.py`.","x":-220,"y":-1200,"width":440,"height":200,"color":"1"},
+		{"id":"inputs","type":"text","text":"### User Inputs\n- SMILES string (solute + solvent)\n- `{central}_AA.itp`, `{solvent}_UA.itp`, `oplsaaff.itp`\n- `{system}.top` topology file\n- MDP template files\n- Experimental: density, molar mass, ε, refractive index, gas dipole\n- Gaussian: `sol_keyword`, basis sets, DFT method\n- Simulation: T, P, replicas, box length L, cutoff radius, qr1/qr2/qr3","x":-220,"y":-980,"width":440,"height":340,"color":"2"},
+		{"id":"s1","type":"text","text":"## 1. Building the Molecule\n`Gro_Builder.py`\n\nGenerates AA and UA `.gro` files from SMILES string using RDKit (distance geometry + UFF optimisation).","x":-220,"y":-580,"width":440,"height":160,"color":"6"},
+		{"id":"s2","type":"text","text":"## 2. Vacuum Phase\n`Pre_Eq_Simulations.py` · `dat_generation.py` · `Vacuum.py` · `PCM1.py` · `PCM2.py`\n\nVacuum EM + NVT on isolated solute. Two-step Gaussian optimisation (Vacuum), PCM1 (exp. ε), PCM2 (optical ε). Extracts reference dipoles `mu_Vacuum`, `PCM1`, `PCM2`.","x":-220,"y":-380,"width":440,"height":240,"color":"3"},
+		{"id":"s3","type":"text","text":"## 3. Production Run\n`Pre_Eq_Simulations.py` · `MD_Simulations.py` · `Oniom_Generation.py` · `Shell_Oniom.f90` · `SCEE.py`\n\nInsert solvent molecules → box EM/NVT/NPT → production MD → extract ~200 frames → Shell_Oniom (6 files/config) → ONIOM opt V0 → single-point charge embedding V1. Produces `dipole_l/m/h` per config.","x":-220,"y":-60,"width":440,"height":240,"color":"4"},
+		{"id":"s4","type":"text","text":"## 4. Analysis & Data Saving\n`Run_SCEE.py` (all inline)\n\nPolynomial SCEE self-consistency fitting → `mu_liquid` per config → IQR outlier filtering (k=2.0) → dipole distribution plots → `Results_{central}.csv`.","x":-220,"y":220,"width":440,"height":180,"color":"5"},
+		{"id":"outputs","type":"text","text":"### Outputs\n- `mu_liquid` — liquid-phase dipole moment (D)\n- `Dipole_Calculations.csv` — per-config results (per replica)\n- `Dipole_Calculations_filtered.csv`\n- `dipole_distribution_{central}.png/.pdf`\n- `dipole_stats_{central}.csv`\n- `Results_{central}.csv` — full summary table","x":-220,"y":520,"width":440,"height":260,"color":"2"}
+	],
+	"edges":[
+		{"id":"e1","fromNode":"inputs","fromSide":"bottom","toNode":"s1","toSide":"top"},
+		{"id":"e2","fromNode":"s1","fromSide":"bottom","toNode":"s2","toSide":"top"},
+		{"id":"e3","fromNode":"s2","fromSide":"bottom","toNode":"s3","toSide":"top"},
+		{"id":"e4","fromNode":"s3","fromSide":"bottom","toNode":"s4","toSide":"top"},
+		{"id":"e5","fromNode":"s4","fromSide":"bottom","toNode":"outputs","toSide":"top"}
+	]
+}

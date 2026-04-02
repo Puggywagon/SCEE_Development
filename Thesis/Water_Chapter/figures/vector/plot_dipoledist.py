@@ -46,7 +46,7 @@ p_list = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000]
 cmap = plt.cm.rainbow
 color_list = [cmap(x) for x in np.linspace(0.0, 1.0, len(p_list))]
 ################################################################################
-fig, ax = plt.subplots(figsize=(3.5, 3))
+fig, ax = plt.subplots(figsize=(5.5, 3.5))
 T = 298
 print(f'temperature = {T} K')
 for p, color in zip(p_list, color_list):

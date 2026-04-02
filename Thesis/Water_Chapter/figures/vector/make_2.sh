@@ -22,12 +22,14 @@ echo "plot_density.py"
 
 echo "plot_dipolestats.py"
 #python ./plot_dipolestats.py --show False
-python ./plot_dipoledist.py --show False
+#python ./plot_dipoledist.py --show False
 #python ./plot_dipoledistliq.py --show False
 #python ./dipdist_nHB.py --show False
 #python ./dipdist_donor.py --show False
 #python ./dipdist_acceptor.py --show False
-#python ./mu_nHB.py --show False
+python ./mu_nHB.py --show False
+python ./plot_hb_histograms.py --show False
+python ./plot_dipdist_hb.py --show False
 #python ./plot_SCEE_PCM.py --show False
 
 echo "plot_rdf.py --T 298"

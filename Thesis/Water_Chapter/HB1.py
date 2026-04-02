@@ -116,7 +116,9 @@ for i in Replicas:
                 data_dict = {'config': [], 'donors': [], 'acceptors': [], 'nHB': []}
                 for filename in file_list:
                     tmp = filename.split('_')[-1]
-                    config = tmp.replace('.gro', '')
+                    config = int(tmp.replace('.gro', ''))
+                    if config == 0:
+                        continue
                     molecule_dict = read_conf(filename)    
         
                     molecule_list = list(molecule_dict.values())
@@ -126,25 +128,28 @@ for i in Replicas:
                     acceptors = 0
                     for m in molecule_list:
                         if (m0.is_acceptor(m)):
-                            acceptors += 1
+                            donors += 1
                         if (m0.is_donor(m)):
                             #print(m.ID)
-                            donors += 1
+                            acceptors += 1
     
-                    nHB = acceptors + donors        
+                    
+
+                    nHB = acceptors + donors
                     print(f'{config}:  nHB = {nHB}, donors={donors}, acceptors={acceptors}')
                     data_dict['config'].append(config)
                     data_dict['donors'].append(donors)
                     data_dict['acceptors'].append(acceptors)
                     data_dict['nHB'].append(nHB)
-    
-                tmp = pd.DataFrame.from_dict(data_dict)
-                tmp.sort_values(by='config', inplace=True)
-                print(tmp)
-                df['donors'] = tmp['donors']
-                df['acceptors'] = tmp['acceptors']
-                df['nHB'] = tmp['nHB']
-    
+
+                    print(f'{config}:  nHB = {nHB}, donors={donors}, acceptors={acceptors}')
+                    hb_df = pd.DataFrame.from_dict(data_dict)
+
+                # Always read fresh from Dipole.csv to avoid stale columns
+                df = pd.read_csv(csv_path)
+                df.sort_values(by='config', inplace=True)
+
+                df = df.merge(hb_df[['config', 'donors', 'acceptors', 'nHB']], on='config', how='left')
                 df.to_csv(pdir / "hbanalysis.csv", index=False)
 ################################################################################
 ################################################################################

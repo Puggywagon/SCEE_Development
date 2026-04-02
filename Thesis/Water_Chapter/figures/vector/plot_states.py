@@ -239,7 +239,7 @@ def gas_boundary(T,p):
 fontsize = 10
 legendsize = 6
 
-fig, ax = plt.subplots(figsize=(3.5, 3))
+fig, ax = plt.subplots(figsize=(5.5, 3.5))
 
 plot_experiment()
 plot_vega()

@@ -1,0 +1,2 @@
+Molecule,N_total,N_kept,N_outliers,mean_D,std_D,median_D,IQR_lo,IQR_hi,q1,q3
+Butylamine,375,353,22,1.4118,0.3629,1.3769,0.1501,2.6919,1.1668,1.6752

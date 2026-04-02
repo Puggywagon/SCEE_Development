@@ -1,0 +1,39 @@
+{
+	"nodes":[
+		{"id":"title","type":"text","text":"# V3 — Section 4: Analysis & Data Saving\n`Simulations_Analysis.py` · `Run_SCEE.py`","x":-220,"y":-880,"width":440,"height":140,"color":"1"},
+		{"id":"inputs","type":"text","text":"### Inputs\n- `df1` — `dipole_l/m/h` per config (from `init4`, Section 3)\n- `mu_Vacuum`, `PCM1`, `PCM2` — from Section 2\n- `gas_dipole` — experimental gas-phase dipole\n- `dipole_model` — FF vacuum dipole\n- `Model_Dipole`, `Epsilon` — FF liquid dipole + model ε\n\n⚠️ WIP: `gas_dipole` not yet read from `Settings.yml`","x":-220,"y":-720,"width":440,"height":320,"color":"2"},
+		{"id":"scee_fit","type":"text","text":"### SCEE Self-Consistency Fitting\nNow happens inside `Gaussian_Calculations.init4()` — not inline in `Run_SCEE.py`.\n\nPer config:\n1. Fit quadratic through `(num1, dipole_l)`, `(num2, dipole_m)`, `(num3, dipole_h)`\n2. Solve `a·μ² + (b−1)·μ + c = 0` → `muL_SCEE`\n3. If `a < 1e-6` → linear fallback: `μ = −c / (b−1)`\n\nReturns `SCEE` series → `df1['muL_SCEE']`","x":-220,"y":-370,"width":440,"height":350,"color":"3"},
+		{"id":"scee_fit_note","type":"text","text":"**V2 → V3:** Fitting moved from inline `Run_SCEE.py` loop into `Gaussian_Calculations.init4()`. Vacuum/PCM1/PCM2 fitting still done inline in `Run_SCEE.py` readback blocks.","x":340,"y":-400,"width":320,"height":180,"color":"3"},
+		{"id":"mu_liquid","type":"text","text":"### Liquid Dipole Calculation (per config, inline in `Run_SCEE.py`)\n`delta_mu = (mu_SCEE × (PCM1 / PCM2)) − mu_Vacuum`\n`mu_liquid = delta_mu + gas_dipole`\n\n`PCM1/PCM2` corrects for incomplete dielectric environment of finite cluster.","x":-220,"y":20,"width":440,"height":240,"color":"6"},
+		{"id":"dipole_liquid","type":"text","text":"### `Simulations_Analysis.get_dipole_model_liquid()`\n`gromacs.tools.Dipoles` on production trajectory → `Dipole2.txt`\nExtracts `Model_Dipole` and `epsilon` (model ε from dipole fluctuations).\n\n⚠️ WIP bugs:\n- Hardcoded to `replica_1` path\n- Returns `Epsilon` (capital E) but local var is `epsilon`","x":-220,"y":300,"width":440,"height":340,"color":"6"},
+		{"id":"collection","type":"text","text":"### Results Collection DataFrame\nOne row per molecule per T/P. Includes:\n- Simulation params: T, P, replicas, config counts (total + filtered)\n- Charge scaling: qr1/2/3, num1/2/3\n- Dipoles: gas, vacuum model, liquid model, mu_Vacuum, PCM1, PCM2, muL_SCEE, delta_mu, mu_liquid\n- Statistics: mean, std (ddof=1), stderr across replica means\n- **Simulation density** *(new in V3)*\n- **Model ε** *(new in V3)*\n- Optional ε correction: `n² + (mu_liquid/Model_Dipole) × (Model_ε + 1)` if `mu_liquid > Model_Dipole`\n\n→ `Results_{solvent}.csv`","x":-220,"y":2100,"width":440,"height":500,"color":"3"},
+		{"id":"collection_note","type":"text","text":"**V2 → V3:** Simulation density and model ε added to collection. Output named `Results_{solvent}.csv` rather than `Results_{central}.csv`.","x":340,"y":2100,"width":320,"height":150,"color":"3"},
+		{"id":"density","type":"text","text":"### `Simulations_Analysis.Sim_Density()` *(new in V3)*\n`gromacs.tools.Energy` on production `.edr` file → `Density.txt`\nExtracts average simulation density.\n\n⚠️ WIP: hardcoded to `replica_1`; args `system_title, i, T, p` not used internally.","x":-220,"y":700,"width":440,"height":260,"color":"3"},
+		{"id":"density_note","type":"text","text":"**V2 → V3:** Entirely new. V2 did not collect simulation density. Added as validation observable against experimental density.","x":340,"y":500,"width":320,"height":140,"color":"3"},
+		{"id":"iqr_note","type":"text","text":"**V2 → V3:** Moved from inline `Run_SCEE.py` into `Simulations_Analysis` class method. Functionally unchanged.","x":340,"y":780,"width":320,"height":140,"color":"3"},
+		{"id":"iqr","type":"text","text":"### `Simulations_Analysis.write_filtered_data(k=2.0)`\nFor each `Dipole_Calculations.csv` across all replica/T/P dirs:\n- Compute Q1, Q3, IQR of `mu_liquid`\n- Lower = Q1 − k×IQR, Upper = Q3 + k×IQR\n- Rows outside bounds → `muL_SCEE`, `delta_mu`, `mu_liquid` set to NaN\n- Requires ≥ 5 finite values\n→ writes `Dipole_Calculations_filtered.csv`","x":-220,"y":1020,"width":440,"height":340,"color":"3"},
+		{"id":"plot1","type":"text","text":"### `Simulations_Analysis.plot_dipoledist(solvent, k=2.0)`\n1. Collect `mu_liquid` across replica CSVs\n2. IQR outlier detection\n3. Histogram: kept (purple), outliers (orange)\n4. Overlay fitted Gaussian curve (teal)\n5. Save → `../figures/dipole_distribution_{solvent}.png/.pdf`","x":-620,"y":1500,"width":400,"height":320,"color":"3"},
+		{"id":"plot1_note","type":"text","text":"**V2 → V3:** Moved from inline `Run_SCEE.py` into `Simulations_Analysis`. Output path changed from hardcoded absolute (`~/Research/SCEE_Project/...`) to relative (`../figures/`).","x":-1060,"y":1600,"width":320,"height":180,"color":"3"},
+		{"id":"plot2","type":"text","text":"### `Simulations_Analysis.plot_dipoledist_filtered(solvent, k=2.0)`\nSame as `plot_dipoledist` with additional axis intelligence:\n- Trim where Gaussian drops below 0.1% of peak\n- Gap detection (zero bins > 3 wide) → trim\n- Extend to mild outliers within 2σ\n\n⚠️ Axis heuristics can produce sub-optimal results — flagged for future fix.\nSaves to `../figures/`","x":220,"y":1500,"width":400,"height":360,"color":"3"},
+		{"id":"plot2_note","type":"text","text":"**V2 → V3:** Same as `plot_dipoledist` — moved to class, relative output path.","x":760,"y":1630,"width":320,"height":100,"color":"3"},
+		{"id":"outputs","type":"text","text":"### Outputs\n- `Dipole_Calculations_filtered.csv` (per replica dir)\n- `Density.txt` — simulation density\n- `dipole_distribution_{solvent}.png/.pdf`\n- `dipole_distribution_{solvent}_filtered.png/.pdf`\n- `dipole_stats_{solvent}.csv`, `_filtered.csv`\n- `Results_{solvent}.csv`","x":-220,"y":2700,"width":440,"height":300,"color":"2"}
+	],
+	"edges":[
+		{"id":"e1","fromNode":"inputs","fromSide":"bottom","toNode":"scee_fit","toSide":"top"},
+		{"id":"e2","fromNode":"scee_fit","fromSide":"bottom","toNode":"mu_liquid","toSide":"top"},
+		{"id":"e3","fromNode":"mu_liquid","fromSide":"bottom","toNode":"dipole_liquid","toSide":"top"},
+		{"id":"e4","fromNode":"dipole_liquid","fromSide":"bottom","toNode":"density","toSide":"top"},
+		{"id":"e5","fromNode":"density","fromSide":"bottom","toNode":"iqr","toSide":"top"},
+		{"id":"e6","fromNode":"iqr","fromSide":"bottom","toNode":"plot1","toSide":"top"},
+		{"id":"e7","fromNode":"iqr","fromSide":"bottom","toNode":"plot2","toSide":"top"},
+		{"id":"e8","fromNode":"plot1","fromSide":"bottom","toNode":"collection","toSide":"top"},
+		{"id":"e9","fromNode":"plot2","fromSide":"bottom","toNode":"collection","toSide":"top"},
+		{"id":"e10","fromNode":"collection","fromSide":"bottom","toNode":"outputs","toSide":"top"},
+		{"id":"ec1","fromNode":"scee_fit","fromSide":"right","toNode":"scee_fit_note","toSide":"left"},
+		{"id":"ec2","fromNode":"density","fromSide":"right","toNode":"density_note","toSide":"left"},
+		{"id":"ec3","fromNode":"iqr","fromSide":"right","toNode":"iqr_note","toSide":"left"},
+		{"id":"ec4","fromNode":"plot1","fromSide":"left","toNode":"plot1_note","toSide":"right"},
+		{"id":"ec5","fromNode":"plot2","fromSide":"right","toNode":"plot2_note","toSide":"left"},
+		{"id":"ec6","fromNode":"collection","fromSide":"right","toNode":"collection_note","toSide":"left"}
+	]
+}

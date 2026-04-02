@@ -1,0 +1,2 @@
+Molecule,N_total,N_kept,N_outliers,mean_D,std_D,median_D,IQR_lo,IQR_hi,q1,q3
+Propylamine,197,193,4,1.4429,0.2928,1.4148,0.3874,2.4755,1.2226,1.6403

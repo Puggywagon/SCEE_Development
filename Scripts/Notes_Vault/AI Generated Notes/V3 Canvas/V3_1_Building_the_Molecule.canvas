@@ -1,0 +1,24 @@
+{
+	"nodes":[
+		{"id":"title","type":"text","text":"# V3 — Section 1: Building the Molecule\n`Gro_Builder.py`","x":-220,"y":-1180,"width":440,"height":120,"color":"1"},
+		{"id":"inputs","type":"text","text":"### Inputs\n- `Settings.yml` — `solmol`, `solvent`, `solresname`\n- Only read when `Mode: Build_Gro`\n\n*(No hardcoded variables)*","x":-220,"y":-1020,"width":440,"height":200,"color":"3"},
+		{"id":"inputs_note","type":"text","text":"**V2 → V3:** All variables were hardcoded inline in `Run_SCEE.py`. Now read from `Settings.yml`. `UA` variables (`solmol`, `solresname`) removed entirely.","x":340,"y":-1120,"width":320,"height":160,"color":"3"},
+		{"id":"mode_gate","type":"text","text":"### Mode Gate\n`if Mode == 'Build_Gro':`\nOnly triggers structure generation if user has not provided an existing `.gro`.","x":-220,"y":-720,"width":440,"height":160,"color":"3"},
+		{"id":"mode_gate_note","type":"text","text":"**V2 → V3:** V2 always called `AA_Structure` and `UA_Structure` unconditionally at the start of every run. V3 gates this on mode.","x":340,"y":-870,"width":320,"height":130,"color":"3"},
+		{"id":"aa","type":"text","text":"### `AA_Structure(solmol, solvent, solresname)`\n1. `Chem.MolFromSmiles()` → RDKit mol object\n2. `Chem.AddHs()` → explicit hydrogens\n3. `AllChem.EmbedMolecule()` → 3D conformation\n4. `AllChem.UFFOptimizeMolecule()` → UFF optimisation\n5. 2D depiction — save **commented out** (display backend issue)\n6. Write `{solvent}.gro`\n   - Coordinates ÷ 10 (Å → nm)\n   - Box size = 0.0\n7. **Returns** `Gro_File` filename string","x":-220,"y":-480,"width":440,"height":400,"color":"3"},
+		{"id":"aa_note","type":"text","text":"**V2 → V3:** `UA_Structure` and `Functional_Group` removed — UA output was never a true united-atom representation. `AA_Structure` now returns `Gro_File` so downstream steps can use the filename without hardcoding. Output renamed from `{system_title}_AA.gro` to `{solvent}.gro`.","x":340,"y":-600,"width":320,"height":240,"color":"3"},
+		{"id":"confirm","type":"text","text":"### Structure Confirmation\nIn interactive use: pauses to allow user to visually confirm structure before continuing.\n\n⚠️ Currently hardcoded to `'Yes'` in WIP version.","x":-220,"y":0,"width":440,"height":160,"color":"6"},
+		{"id":"outputs","type":"text","text":"### Outputs\n- `{solvent}.gro` — all-atom coordinate file\n- `Gro_File` — filename string passed to `run_md1`\n\n*(No UA file, no PNG in V3)*","x":-220,"y":260,"width":440,"height":180,"color":"2"},
+		{"id":"note1","type":"text","text":"📝 Box dimensions still `0.0` at this stage — assigned later in `Gro_Simulations.run_md1()` via `gromacs.editconf`.","x":-220,"y":480,"width":440,"height":100,"color":"2"},
+		{"id":"note2","type":"text","text":"📝 Topology file still not generated here — must be user-supplied and consistent with the RDKit geometry.","x":-220,"y":620,"width":440,"height":80,"color":"2"}
+	],
+	"edges":[
+		{"id":"e1","fromNode":"inputs","fromSide":"bottom","toNode":"mode_gate","toSide":"top"},
+		{"id":"e2","fromNode":"mode_gate","fromSide":"bottom","toNode":"aa","toSide":"top"},
+		{"id":"e3","fromNode":"aa","fromSide":"bottom","toNode":"confirm","toSide":"top"},
+		{"id":"e4","fromNode":"confirm","fromSide":"bottom","toNode":"outputs","toSide":"top"},
+		{"id":"ec1","fromNode":"inputs","fromSide":"right","toNode":"inputs_note","toSide":"left"},
+		{"id":"ec2","fromNode":"mode_gate","fromSide":"right","toNode":"mode_gate_note","toSide":"left"},
+		{"id":"ec3","fromNode":"aa","fromSide":"right","toNode":"aa_note","toSide":"left"}
+	]
+}
