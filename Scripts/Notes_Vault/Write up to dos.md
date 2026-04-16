@@ -1,0 +1,69 @@
+**Methods**
+- Figures and Tables
+	- Stat Mech
+		- [ ] Boltzmann Distribution -plot of $Pi∝e−βEiP_i \propto e^{-\beta E_i} Pi​∝e−βEi​$ as a function of energy, showing curves at two or three temperatures
+		- [ ] Partition function and thermodynamic properties, a schematic showing the logical flow from Z to derived quantities (AA A, SS S, ⟨E⟩\langle E \rangle ⟨E⟩, CVC_V CV​, PP P, and then ε\varepsilon ε via the fluctuation-dissipation relation) would serve as a useful roadmap.
+		- [ ] Free energy landscape / potential energy surface schematic would be valuable, even a simple 1D cartoon showing multiple minima separated by barriers
+	- QM
+		- [ ] An energy ladder diagram showing the hierarchy of translational, rotational, vibrational and electronic energy levels 
+		- [ ] A simple diagram illustrating the separation of nuclear and electronic motion
+		- [ ] A flowchart of the SCF procedure showing the iterative cycle from initial guess through to convergence
+		- [ ] A diagram illustrating the hierarchy of functional approximations
+		- [ ] A plot comparing STO and GTO radial functions
+		- [ ] A simplified 2D phase space diagram showing a trajectory evolving through position-momentum space
+	- Intermolecular Forces and Forcefields
+		- [ ] A U(r)U(r) U(r) vs rr r schematic with the repulsive wall, minimum at rminr_\text{min} rmin​, and attractive tail — label which physical mechanism dominates each region
+		- [ ] A two-panel illustration of London dispersion: left panel shows two atoms with symmetric electron clouds; right panel shows an instantaneous fluctuating dipole in atom A inducing a correlated dipole in atom B, with a net attractive arrow between them
+		- [ ] Two-panel figure: left shows a molecule (e.g. a simple ellipse representing electron cloud) with no net dipole in zero field; right shows the same molecule in field **E** with the electron cloud displaced, an induced dipole arrow μind\boldsymbol{\mu}_\text{ind} μind​ labelled, and the field lines shown. This is the single most important conceptual figure in this subsection
+		- [ ] a small table of polarisabilities for molecules relevant to your work (water, common solvents) to give physical intuition for the scale of $\alpha$ 
+		- [ ] A multi-panel figure showing the charge arrangements and field patterns for each moment — this is the figure that earns its place most clearly in the whole section:
+			- Monopole: single charge, spherical field lines
+			- Dipole: +q/−q+q/-q +q/−q pair, characteristic dipole field
+			- Linear quadrupole: −q/+2q/−q-q/+2q/-q −q/+2q/−q arrangement (CO₂ is the canonical example)
+			- Square quadrupole: alternating charges at corners (benzene's quadrupole)
+		- [ ] Schematic or table showing the distance dependence of each interaction type (charge–charge $r^{-1}$, charge–dipole $r^{-2}$, dipole–dipole $r^{-3}$,...) — this makes the hierarchy of importance immediately visual
+		- [ ] A figure of water showing the partial charges, bond dipoles, resultant dipole vector, and the bent geometry — this is a standard figure but you should make your own version with consistent notation
+		- [ ] A comparison figure or table: gas-phase vs estimated liquid-phase dipole moments for water and one or two other polar solvents, to visually motivate why condensed-phase dipoles matter
+		- [ ] Molecular figures of CO₂ and benzene illustrating quadrupole moments conceptually (charge distribution diagrams rather than field line plots)
+		- [ ] A schematic of a dielectric in a capacitor: left panel shows random dipole orientations with no field; right panel shows partial alignment under field **E**, with **P** (polarisation) and **D** indicated. This is conceptually essential even if it feels standard — it grounds the macroscopic definitions.
+		- [ ] A plot or diagram illustrating the Kirkwood g-factor conceptually: water molecules with arrows showing the net alignment tendency, contrasted with a hypothetical antiparallel system
+		- [ ] A conceptual diagram of the Ewald splitting: a point charge replaced by a screened charge (Gaussian) in real space and a compensating charge in reciprocal space — this makes the method intuitive without requiring the reader to follow the algebra
+		- [ ] A clean $U_\text{LJ}(r)$ plot with $\sigma$, $\epsilon$, and $r_\text{min}$​ labelled — make your own with consistent notation
+		- [ ] A table comparing major force field families (OPLS-AA, AMBER, CHARMM, TraPPE) across: parameterisation target data, charge derivation scheme, recommended system types, and whether ϵr\epsilon_r ϵr​ was included in fitting — the last column will be mostly empty, which makes a point
+		- [ ] UA vs AA comparison figure: e.g. ethanol or a simple alkyl chain shown as UA (CH₃ and CH₂ as single beads) vs AA (all H atoms explicit) — label the interaction sites in each case
+		- [ ] A schematic of the intramolecular energy terms: two atoms connected by a spring (bond), an angle potential diagram, and a dihedral rotation diagram — these are standard but useful for a self-contained methods chapter
+		- [ ] UA vs AA comparison figure: e.g. ethanol or a simple alkyl chain shown as UA (CH₃ and CH₂ as single beads) vs AA (all H atoms explicit) — label the interaction sites in each case
+		- [ ] A schematic of the intramolecular energy terms: two atoms connected by a spring (bond), an angle potential diagram, and a dihedral rotation diagram — these are standard but useful for a self-contained methods chapter
+	- General Simulations
+		- [ ] Potential surface energy somewhere (2d and 3d ish)
+		- [ ] Periodic boundary conditions diagram showing the central simulation box surrounded by its periodic image replicas in two or three dimensions, with a molecule illustrated in the act of exiting one face and re-entering through the opposite face, and the minimum image convention illustrated alongside showing the nearest image selection
+		- [ ] Neighbour list schematic showing a central molecule with the interaction cutoff sphere of radius r_c​, the larger list cutoff sphere of radius r_l, the skin width δ=rl−rc, and example molecules at various positions relative to both cutoffs
+		- [ ] Cell list construction diagram showing the simulation box divided into a regular grid of cells each of side length r_c, with a central molecule highlighted and its interaction search restricted to the immediately adjacent cells
+		- [ ] Finite size effects extrapolation plot showing a computed property directly relevant to your work, such as the dielectric constant \varepsilon_r, plotted as a function of 1/N across several system sizes with a linear extrapolation to the thermodynamic limit 1/N→0
+	- MD
+		- [ ] Velocity Verlet integration cycle schematic showing the two stage update procedure, with positions updated first using current velocities and forces, forces evaluated at new positions, and velocities completed using the averaged forces at t and t+Δt
+		- [ ] Energy conservation plot showing the drift in total energy E=K+U as a function of simulation time for several values of Δt spanning the stable and unstable regimes, illustrating the stability threshold and the Δt^2 scaling of energy fluctuations
+		- [ ] Thermostat comparison figure showing the distribution of instantaneous kinetic temperatures or kinetic energies produced by velocity rescaling, the Berendsen thermostat, and the Nosé-Hoover thermostat alongside the correct canonical distribution for the same target temperature, illustrating the ensemble correctness argument
+	- MC
+		- [ ] Metropolis algorithm flowchart showing the full accept/reject cycle from the proposal of a trial move through the computation of ΔU the evaluation of the acceptance criterion min⁡(1,exp⁡(−ΔU/kBT)), the comparison against a uniform random number, and the branching to either accept the new configuration or retain the current one
+		- [ ] Histogram reweighting figure showing overlapping energy or density histograms accumulated at multiple state points spanning the region of interest, with the reweighted distributions at intermediate state points overlaid, directly illustrating the extrapolation procedure used in the Zeno line investigation
+	- SCEE
+	- Thermodynamic Goals
+	- Project Goals
+- Editing
+	- Add the figures listed above
+	- Add citations
+	- Double check equation terms
+	- Read through and fix tenses
+	- Work on this
+**Results 1**
+- Figures and tables
+	- [ ] Updated h-bond plots updates where required
+- Editing
+**Review Requirements**
+- Create a separate file for the chapters
+- Send to Miguel and Leo to read over
+- Create a copy of the overview without the completed sections of chapters
+- Write a one or two  sentence explanation of what is being included for each chapter
+- Make a gantt chart
+- Editing and keep editing
