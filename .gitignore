@@ -1,1 +1,60 @@
 Scripts/Notes_Vault/.obsidian/plugins/
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Logs and scratch
+*.log
+nohup.out
+junk.log
+junk.mdp
+# GROMACS run intermediates
+*.trr        # full-precision trajectory, can be huge
+*.xtc        # compressed trajectory, still large
+*.edr        # energy file
+*.cpt        # checkpoint
+*.tpr        # binary run input — regenerable from .mdp + .gro + .top
+#*.gro       # NOT ignored - some are inputs!
+#*.top       # NOT ignored - inputs!
+#*.itp       # NOT ignored - inputs!
+#*.mdp       # NOT ignored - inputs!
+
+# GROMACS log/output files
+*.xvg        # analysis output — see note below
+mdout.mdp    # GROMACS auto-generated copy of effective mdp
+\#*\#        # GROMACS backup files (literally hashes around filename)
+step*.pdb    # GROMACS error dumps
+
+# Gaussian
+*.chk        # checkpoint, large, regenerable
+*.rwf        # read-write file, scratch
+*.int        # integral file
+*.d2e
+*.skr
+fort.7
+
+# Gaussian outputs — judgment call
+*.out       # the actual results — probably keep these in data/
+
+# --- Compiled binaries ---
+# Source (.f90) is tracked; binaries are platform-specific
+shellO
+Shell_Oniom
+*.o
+*.mod
+*.exe
