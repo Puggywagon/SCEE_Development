@@ -1,0 +1,34 @@
+- [x] Rerun Ethanol_AA using new scaling ✅ 2026-04-21
+- [ ] Obtain Ethanol RDFs (OO, OH and CH) from Cecilia's Configuration and my AA Configurations
+- [ ] Pull together table with | Molecule | Vacuum Dipole Moment | SCEE  Dipole Moment | Induced Dipole Moment | Liquid Dipole Moment | Number of Configurations |
+	- [ ] Add spaces for the results of the previous configurations
+	- [ ] Include the distribution Plots
+- [ ] Review Write Up
+	- [x] Methods ✅ 2026-04-21
+		- [x] SCEE ✅ 2026-04-21
+			- [x] Manual Approach ✅ 2026-04-21
+			- [x] Automated Approach ✅ 2026-04-21
+		- [x] Thermodynamic Regularities ✅ 2026-04-21
+			- [x] Simulation Details ✅ 2026-04-21
+	- [ ] Other Work
+		- [ ] Make updated H-Bonds figure for results section
+		- [x] Make figures for methods section using [[Write up to dos]] ✅ 2026-04-23
+		- [x] Add figures in and make appropriate references within the text ✅ 2026-04-23
+		- [ ] Go through Methods Chapter to add citations 
+		- [x] Fix formatting for equations ✅ 2026-04-21
+		- [ ] Send to Miguel and Leo for Review
+		- [ ] Take a break from the writing
+		- [ ] Begin editing
+- [ ] DRG Jobs
+	- [ ] PGR Ceilidh
+		- [ ] Set up tickets
+		- [ ] Make a poster
+		- [ ] Send out email and make gradnews entry
+	- [ ] Writing Group
+		- [ ] Make calendar invite for next block of sessions
+		- [ ] Update Slides
+	- [ ] AI Working Group
+		- [ ] Work through emails
+		- [ ] Work on my section for writing group
+- [ ] My Birthday
+	- [ ] Make plans on what I want to do for it

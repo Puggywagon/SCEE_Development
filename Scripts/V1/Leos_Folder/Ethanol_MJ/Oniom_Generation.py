@@ -306,7 +306,7 @@ class Oniom_Generation(object):
                 Sigma=0.2673
                 Epsilon=0.0418
             else:
-                Sigma=matching_type.iloc[0]['Sigma']*10 
+                Sigma=matching_type.iloc[0]['Sigma']
                 Epsilon=matching_type.iloc[0]['Epsilon']
             qi=matching_type.iloc[0]['q']
             wi=qi/qmax
@@ -510,11 +510,11 @@ class Oniom_Generation(object):
 #################################################################################        
     def Counting_Molecules(self,Topology,Oniom,Solvent_Molecules):
         with open(Oniom, 'a') as file:
-                file.write(f'1043\n')
+                file.write(f'{Solvent_Molecules:.0f}\n')
 ################################################################################
     def Gen_File(self,Oniom,Configurations, system_title, Cut_Off_Radius):
         with open(Oniom, 'w') as file:
             file.write(f'{Configurations:.0f}\n')
             file.write(f'{system_title}\n')
-            file.write(f'2.0\n\n')
+            file.write(f'{Cut_Off_Radius:.1f}\n\n')
 ################################################################################
