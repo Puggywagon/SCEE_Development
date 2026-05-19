@@ -114,7 +114,7 @@ class Gro_Simulations(object):
             bath_name = 'Solvent'
         else:
             bath_name = 'Solvent_UA'
-        with open(Topology_File, 'a') as file:
+        with open(topology, 'a') as file:
             file.write(f'{bath_name}            {settings.initial_molecules}\n')
 ################################################################################
     def run_md2(self, settings, role):
@@ -198,19 +198,25 @@ class Gro_Simulations(object):
 ################################################################################
     def run_md3(self, settings, role, HOMEDIR, T, p):
         if role == 'pure':
-            topology = 'Pure.top'
+            topology = HOMEDIR+f'/Pure.top'
             runname = f'Pure_QMMM_md3'
             suffix = ''
         elif role == 'mixture':
             topology = 'Mixture.top'
             suffix = '_solute'
-            runname = f'Mixture_QMMM_md3'
+            runname = HOMEDIR+f'/Mixture_QMMM_md3'
         else:
             raise ValueError(f"role must be 'pure' or 'mixture', got {role!r}")
     
         mdpfile='Prod.mdp'
         self.create_mdpfile(HOMEDIR,mdpfile,T,p)
         print('performing molecular dynamics')
+        grofile = HOMEDIR+f'/npt{suffix}.gro'
+        edrfile = f'{runname}.edr'
+        groout = f'{runname}.gro'
+        xtcfile = f'{runname}.xtc'
+        trrfile = f'{runname}.trr'
+        tprfile = f'{runname}.tpr'
 
         gromacs.grompp(f=mdpfile, c=grofile, p=topol, o=tprfile, maxwarn=2)
         gromacs.mdrun(

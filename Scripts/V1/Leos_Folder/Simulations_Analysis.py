@@ -26,9 +26,18 @@ class Simulations_Analysis(object):
         f.write(dipole_output)
         f.close()
 
-        dipole_lines = dipole_output.splitlines()  
-        dipole_line = dipole_lines[8]  
-        dipole_model = float(dipole_line.split()[2])
+        # Search for "Average  =   2.3301  Std. Dev. =   0.1303  Error =   0.0003"
+        for line in dipole_output.splitlines():
+            stripped = line.strip()
+            if stripped.startswith('Average'):
+                tokens = stripped.split()
+                # tokens[0]='Average', tokens[1]='=', tokens[2]='2.3301'
+                return float(tokens[2])
+    
+        raise ValueError(
+            "Could not find 'Average' line in gmx dipoles output. "
+            "Check Dipole.txt for the actual output."
+        )
         return dipole_model
 ######################################################
     def get_dipole_model_liquid(self): 
@@ -40,16 +49,25 @@ class Simulations_Analysis(object):
                                 input=input_str)
         chk, dipole_output, stderr = tmp.run()
 
-        f = open(f'Dipole2.txt', 'w')
-        f.write(dipole_output)
-        f.close()
-
-        dipole_lines = dipole_output.splitlines()  
-        dipole_line = dipole_lines[8]  
-        Model_Dipole = float(dipole_line.split()[2])  
-        epsilon_line = dipole_lines[-1]  
-        Epsilon = float(epsilon_line.split()[2])  
+        with open('Dipole2.txt', 'w') as f:
+            f.write(dipole_output)
         
+        Model_Dipole = None
+        epsilon = None
+    
+        for line in dipole_output.splitlines():
+            stripped = line.strip()
+            if stripped.startswith('Average') and Model_Dipole is None:
+                Model_Dipole = float(stripped.split()[2])
+            elif stripped.startswith('Epsilon'):
+                # "Epsilon = 1.00112" → split on '=', take rhs
+                epsilon = float(stripped.split('=')[1].strip())
+    
+        if Model_Dipole is None:
+            raise ValueError("Could not find 'Average' line in gmx dipoles output.")
+        if epsilon is None:
+            raise ValueError("Could not find 'Epsilon' line in gmx dipoles output.")
+            
         return Model_Dipole, Epsilon
 ################################################################################
     def Sim_Density(self):
@@ -60,13 +78,20 @@ class Simulations_Analysis(object):
                                input=input_str)
         chk, density_output, stderr = tmp.run()
 
-        f = open(f'Density.txt', 'w')
-        f.write(density_output)
-        f.close()
-
-        density_lines = density_output.splitlines()
-        density_line = density_lines[9]  
-        density = float(density_line.split()[1])
+        with open('Density.txt', 'w') as f:
+            f.write(density_output)
+    
+        # Search for the Density line (rather than fixed line number)
+        for line in density_output.splitlines():
+            if line.strip().startswith('Density'):
+                tokens = line.split()
+                # Format: "Density   997.219   0.14   8.65933   -1.03743   (kg/m^3)"
+                return float(tokens[1])
+    
+        raise ValueError(
+            "Could not find 'Density' line in gmx energy output. "
+            "Check Density.txt for the actual output."
+        )
         
         return density  
 ################################################################################
@@ -301,7 +326,7 @@ class Simulations_Analysis(object):
                                if c in df_leaf.columns]
                 df_leaf.loc[leaf_rejected, cols_present] = np.nan
  
-                leaf_dir = f'Simulations/replica_{replica}/{T}K/{p}Bar'
+                leaf_dir = f'Simulations/replica_{replica}/{T:g}K/{p:g}Bar'
                 out_path = os.path.join(leaf_dir,
                                         'Dipole_Calculations_filtered.csv')
                 df_leaf.to_csv(out_path, index=False)

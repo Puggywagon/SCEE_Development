@@ -155,8 +155,8 @@ def load_settings(path: str = "Settings.yml") -> Settings:
     # --- State Conditions ---
     sc = data["State_Conditions"]
     state = StateConditions(
-        temperatures=sc["Temperature"],
-        pressures=sc["Pressure"],
+        temperatures=[float(t) for t in sc["Temperature"]],
+        pressures=[float(p) for p in sc["Pressure"]],
         replicas=sc["Replicas"],
     )
  

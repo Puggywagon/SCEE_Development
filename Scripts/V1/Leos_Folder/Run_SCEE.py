@@ -118,7 +118,7 @@ replicas = range(1, settings.state.replicas + 1)
 all_dipole_dfs = []
 leaf_summary_rows = []
 for replica, T, p in itertools.product(replicas, settings.state.temperatures, settings.state.pressures):
-    leaf = f'Simulations/replica_{replica}/{T}K/{p}Bar'
+    leaf = f'Simulations/replica_{replica}/{T:g}K/{p:g}Bar'
     with cd(leaf):
         MD.run_md3(settings, role='pure', HOMEDIR=HOMEDIR, T=T, p=p)
         # Gaussian processing on the 200 configurations
@@ -126,7 +126,7 @@ for replica, T, p in itertools.product(replicas, settings.state.temperatures, se
         Gauss.init3()
         SCEE = Gauss.init4()
         
-        dipole_df = Analysis.process_leaf(SCEE, mu_Vacuum, PCM1, PCM2, settings)
+        dipole_df = Analysis.process_dipole(SCEE, mu_Vacuum, PCM1, PCM2, settings)
         sim_density = Analysis.Sim_Density()
         liq_dipole, model_eps = Analysis.get_dipole_model_liquid()
         liq_potential = Analysis.Pot_Liq()

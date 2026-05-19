@@ -90,41 +90,34 @@ class Atoms(object):
 
         raise ValueError(f"Could not resolve element from atomname '{atomname}'")
 ##################################################################################################    
-def gaussian_symbol_from_gro_name(self, gro_name):
-    """Resolve a GROMACS atom-name tag (e.g. 'OW', 'CA', 'CB', 'MW') to
-    its Gaussian element symbol. Used when reading a .gro file where 
-    mass isn't available.
+    def gaussian_symbol_from_gro_name(self, gro_name):
+        if not gro_name:
+            raise ValueError("Empty gro atom name cannot be resolved")
     
-    For ambiguous two-letter prefixes (NA, CA, CL, BR, SI), uses the
-    organic-chemistry default — see ORGANIC_DEFAULTS.
-    """
-    if not gro_name:
-        raise ValueError("Empty gro atom name cannot be resolved")
+        up = gro_name.upper()
     
-    up = gro_name.upper()
+        # 1) Dummy/virtual sites → Bq
+        for pref in self.DUMMY_PREFIXES:
+            if up.startswith(pref):
+                return "Bq"
     
-    # 1) Dummy/virtual sites → Bq
-    for pref in self.DUMMY_PREFIXES:
-        if up.startswith(pref):
-            return "Bq"
+        # 2) Ambiguous two-letter prefix → use organic-chemistry default
+        for prefix, default in self.ORGANIC_DEFAULTS.items():
+            if up.startswith(prefix):
+                return default
     
-    # 2) Ambiguous two-letter prefix → use organic-chemistry default
-    for prefix, default in self.ORGANIC_DEFAULTS.items():
-        if up.startswith(prefix):
-            return default
+        # 3) Two-letter element match
+        if len(gro_name) >= 2 and gro_name[0].isalpha() and gro_name[1].isalpha():
+            cand2 = gro_name[0].upper() + gro_name[1].lower()
+            if cand2 in self.SUPPORTED_2:
+                return cand2
     
-    # 3) Two-letter element match
-    if len(gro_name) >= 2 and gro_name[0].isalpha() and gro_name[1].isalpha():
-        cand2 = gro_name[0].upper() + gro_name[1].lower()
-        if cand2 in self.SUPPORTED_2:
-            return cand2
+        # 4) One-letter element match
+        cand1 = gro_name[0].upper()
+        if cand1 in self.SUPPORTED_1:
+            return cand1
     
-    # 4) One-letter element match
-    cand1 = gro_name[0].upper()
-    if cand1 in self.SUPPORTED_1:
-        return cand1
-    
-    raise ValueError(f"Could not resolve element from gro atom name '{gro_name}'")
+        raise ValueError(f"Could not resolve element from gro atom name '{gro_name}'")
 ##################################################################################################
     def Atom_Types(self,Gros,Masses):
         Gaus_List=[]
