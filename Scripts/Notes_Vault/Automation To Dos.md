@@ -1,0 +1,4 @@
+- [ ] Cut down yaml to either you have the single molecule gro or need it made
+- [ ] Add in some ifs for UA
+- [ ] Add in some ifs for Mixture
+- [ ] 

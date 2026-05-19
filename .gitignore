@@ -50,6 +50,8 @@ fort.7
 
 # Gaussian outputs — judgment call
 *.out       # the actual results — probably keep these in data/
+*.dat
+*.fchk
 
 # --- Compiled binaries ---
 # Source (.f90) is tracked; binaries are platform-specific
@@ -58,3 +60,5 @@ Shell_Oniom
 *.o
 *.mod
 *.exe
+
+*.xvg

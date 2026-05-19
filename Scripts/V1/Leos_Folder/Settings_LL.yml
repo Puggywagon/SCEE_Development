@@ -1,64 +1,38 @@
 #=================================================
-# User settings
+# State Conditions
 #=================================================
-User:
-    State_Conditions:
-        Temperature: [298] #Temperature in K, can be given as a list like [T1,T2,T3]
-        Pressure: [1] #Pressure in Bar, can be given as a list like [T1,T2,T3]
-        Replicas: 0  # Please give the number of replicas you would like the script to perform as a number, note that we use python so give us the number of reps required -1 i.e. for 1 replica give Replicas: 0
-        Gas_Dip: 1.3 # (Still need to find a value for this number) # Please give us the gas phase of the molecule you are investigating Not sure where to put this when mixture
-        Di_Const: 40.245 # Please give us the experimental dielectric constant of the molecule you are investigating Not sure where to put this when mixture
-        Ref_Ind: 1.429 # Please give us the refractive index of the molecule you are investigating Not sure where to put this when mixture
-        sol_keyword: 1,2-EthaneDiol #These can be obtained on the SCRF Website # Will need some guidance on what to do when this isn't available? Not sure where to put this when mixture
-        Grom_Location: /home/zoe/Software/gromacs-2024.2/bin/GMXRC.bash
-#Where is gromacs
-        # Not Sure this if we should add Gromacs location here too?
+State_Conditions:
+    Temperature: [298] #Temperature in K, can be given as a list like [T1,T2,T3]
+    Pressure: [1] #Pressure in Bar, can be given as a list like [T1,T2,T3]
+    Replicas: 5   # Number of replicas to run. e.g. Replicas: 5 produces replica_1 through replica_5.
+   
 
-
-    GROMACS:
-
-
-    Gaussian:
-        g09root: /home/zoe/Software/Gaussian/g09_pgi #  executable
-        GAUSS_SCRDIR: /home/zoe/Research/Gaussian/scratch # scratch directory
-        max_jobs: 3 # How many jobs can you run at nproc=8
-
-    Mode: Build_Gro # Options: Yes_Gro, No_Gro, Build_Gro
-    Mixture_Loop: No # Options: Yes, No
+#=================================================
+# Molecule Information
+#=================================================
+Molecule_Information:  
+    System_Title: Ethanol #What name are you using for your system (please keep this the same as the folder you have generated for your molecule)
+    Gas_Dip: 1.690 # Please give us the gas phase of the molecule you are investigating Not sure where to put this when mixture
+    Di_Const: 24.852 # Please give us the experimental dielectric constant of the molecule you are investigating Not sure where to put this when mixture
+    Ref_Ind: 1.361 # Please give us the refractive index of the molecule you are investigating Not sure where to put this when mixture
+    sol_keyword: Ethanol #These can be obtained on the SCRF Website # Will need some guidance on what to do when this isn't available? Not sure where to put this when mixture
     
-    Yes_Gro:
-        Gro_File: null # as a .gro
-        Topology_File: null # as a .top
-        solvent:  null # What is the MM layer molecules even if this is the same as the solute 
-        Mixture_Settings:
-            solute:  null # What is the central molecule you are studying
-    No_Gro:
-        Sol_Gro_File: null # as a .gro
-        Topology_File: null # as a .top 
-        solvent:  null # What is the MM layer molecules even if this is the same as the solute
-        density: null # Experimental Density in g/cm^3
-        mol_mass: null # Molar Mass of Molecule g/mol
-        solresnametop: null # What is the res name used for the solvent in the top file
-        Mixture_Settings:
-            Solute_Gro_File: null # as a .gro
-            Solute_Topology_File: null # as a .top 
-            solute:  null # What is the central molecule you are studying
-            resnametop: null # What is the res name used for the solvent in the top file
-    Build_Gro:
-        Solvent_Topology_File: EthaneDiol.top # as a .top
-        density: 1.115 # Experimental Density in g/cm^3
-        mol_mass: 62.07 # Molar Mass of Molecule g/mol
-        solvent:  EthaneDiol # What is the MM layer molecules even if this is the same as the solute and will use this for naming your gro files 
-        solresnametop: EthaneDiol # What is the res name used for the solvent in the top file
-        solresname: EtDl # What is the residue name you would like us to use in your solvent gro file
-        solmol: OCCO # What is the smile string got your solvent molecule
-        Mixture_Settings:
-            Solute_Topology_File: null # as a .top 
-            solute: null # What is the central molecule you are studying and will use this for naming your gro files 
-            resname: null # What is the residue name you would like us to use in your solute gro file
-            mol: null # What is the smile string got your solute molecule
-            resnametop: null # What is the res name used for the solvent in the top file
-
+    density: 0.7849 # Experimental Density in g/cm^3 
+    mol_mass: 46.068 # Molar Mass of Molecule g/mol
+    
+    AA_Surround: Yes  # YES or No #If you want to use AA to describe your MM layer say yes, if no we will use UA.
+    Solvent_Smile: CCO # Add a smile string here and we will use RD Kit to build your molecule. #Change to null to use your own gro_file
+    Solute_Smile: null  #Leave null unless you intend to study a mixture # Add a smile string here and we will use RD Kit to build your molecule. #Change to No to use your own gro_file
+#=================================================
+# Software Settings #Will need to format to be more user variable or do something in the script for it to search and locate, realistically should be a set and done.
+#=================================================
+Software:
+    Gaussian:
+        GAUSS_SCRDIR: /home/zoe/Research/Gaussian/scratch # optional, defaults to here
+        max_jobs: 6                       # how many parallel Gaussian jobs
+    # GROMACS auto-detected from $PATH; specify here only if needed
+    GROMACS_Override: /home/zoe/Software/gromacs-2024.2/bin/GMXRC.bash               # optional override for non-standard installs
+    Gaussian_Override: /home/zoe/Software/Gaussian/g09_pgi            # optional override for non-standard installs
 #=================================================
 # Advanced settings - Do not modify if unsure
 #=================================================
@@ -74,6 +48,6 @@ Advanced_Settings:
                                   # May need option to include configurations outside fitting step
     electrostatics:
         charge_scaling:
-            qr1: 1.0              # Scaling factor for charge set 1
-            qr2: 1.35             # Scaling factor for charge set 2
-            qr3: 1.7              # Scaling factor for charge set 3    
+            qr1: 0.8              # Scaling factor for charge set 1
+            qr2: 1.1             # Scaling factor for charge set 2
+            qr3: 1.5              # Scaling factor for charge set 3    

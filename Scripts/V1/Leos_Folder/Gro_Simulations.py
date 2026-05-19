@@ -11,29 +11,157 @@ import time
 ################################################################################
 class Gro_Simulations(object):
     def __init__(self):
-        hostname = socket.gethostname()
-
-        # basic GROMACS threading setup
-        self.ntmpi = 1
-        self.pin = 'auto'
-        self.pinoffset = 0   # we'll keep it simple for now
-        if 'Tower3' in hostname:
-            self.ntomp = 8
-            self.max_heavy_jobs = 4 # max mdrun processes on Tower3
+        pass
+################################################################################
+    def run_md1(self, settings, role):
+        if role == 'pure':
+            central_gro = 'Solvent.gro'
+            topology = 'Pure.top'
+            suffix = ''
+        elif role == 'mixture':
+            central_gro = 'Solute.gro'
+            topology = 'Mixture.top'
+            suffix = '_solute'
         else:
-            self.ntomp = 6
-            self.max_heavy_jobs = 3   # max mdrun processes on office PC
+            raise ValueError(f"role must be 'pure' or 'mixture', got {role!r}")
+    
+            
+        L = settings.advanced.configuration.box_length_nm + 1.7
+        # The +1.7 nm is empirically determined: gmx insert-molecules
+        # needs box headroom to place molecules without clipping. Values
+        # 1.6 and 1.8 nm have been tested and only 1.7 worked reliably.
+    
+        print(f'performing vacuum equilibration of {central_gro}')
+        gromacs.check(c=central_gro)
+        gromacs.editconf(f=central_gro, box=[L, L, L], o=central_gro)
+        gromacs.check(c=central_gro)
+
+        # Energy minimisation
+        gromacs.grompp(
+            f='minim_vacuum.mdp', c=central_gro, p=topology,
+            o=f'em{suffix}.tpr', maxwarn=2,
+        )
+        gromacs.mdrun(
+            '-v', deffnm=f'em{suffix}',
+            ntmpi=self.ntmpi, ntomp=self.ntomp,
+            pin=self.pin, pinoffset=self.pinoffset,
+        )
+        
+        # NVT vacuum equilibration
+        gromacs.grompp(
+            f='nvt_vacuum.mdp', c=f'em{suffix}.gro', p=topology,
+            o=f'nvt_vacuum2{suffix}.tpr', maxwarn=2,
+        )
+        gromacs.mdrun(
+            '-v', deffnm=f'nvt_vacuum2{suffix}',
+            ntmpi=self.ntmpi, ntomp=self.ntomp,
+            pin=self.pin, pinoffset=self.pinoffset,
+        )
+    
+        # Vacuum potential (gas-phase single-point for ΔH_vap)
+        gromacs.grompp(
+            f='vacuum_potential.mdp', c=f'em{suffix}.gro', p=topology,
+            o=f'vacuum_potential{suffix}.tpr', maxwarn=2,
+        )
+        gromacs.mdrun(
+            '-v', deffnm=f'vacuum_potential{suffix}',
+            ntmpi=self.ntmpi, ntomp=self.ntomp,
+            pin=self.pin, pinoffset=self.pinoffset,
+        )
+        
+        self.insert_Molecules(settings, role)
+        self.Write_to_top(settings, role)
 ################################################################################
-    def insert_Molecules(self,initial_molecules,Mixture):
-        Solute=f'nvt_vacuum2.gro'
-        Adding=f'nvt_vacuum2.gro'          
-        gromacs.insert_molecules(f=Solute,ci=Adding, nmol=f'{initial_molecules}', o='out.gro')
+    def insert_Molecules(self, settings, role):
+        # Derive the suffix and central-gro from role
+        if role == 'pure':
+            suffix = ''
+        elif role == 'mixture':
+            suffix = '_solute'
+        else:
+            raise ValueError(f"role must be 'pure' or 'mixture', got {role!r}")
+    
+        # Base: the equilibrated central molecule (output of run_md1)
+        base_gro = f'nvt_vacuum2{suffix}.gro'
+        
+        # Adding: the molecule to be replicated into the box
+        if settings.molecule.aa_surround:
+            # In mixture-AA, the bath is the (un-equilibrated) AA solvent
+            adding_gro = 'Solvent.gro'
+        else:
+            # UA bath: user-supplied UA solvent gro
+            adding_gro = 'Solvent_UA.gro'
+        
+        output_gro = f'out{suffix}.gro'
+        
+        print(f'inserting {settings.initial_molecules} copies of {adding_gro} into {base_gro}')
+        gromacs.insert_molecules(
+            f=base_gro,
+            ci=adding_gro,
+            nmol=str(settings.initial_molecules),
+            o=output_gro,
+        )
 ################################################################################
-    def Write_to_top(self,Topology_File,initial_molecules,solresnametop):
+    def Write_to_top(self,settings, role):
+        if role == 'pure':
+            topology = 'Pure.top'
+        elif role == 'mixture':
+            topology = 'Mixture.top'
+        else:
+            raise ValueError(f"role must be 'pure' or 'mixture', got {role!r}")
+    
+        if settings.molecule.aa_surround:
+            bath_name = 'Solvent'
+        else:
+            bath_name = 'Solvent_UA'
         with open(Topology_File, 'a') as file:
-            file.write(f'{solresnametop}            {initial_molecules}\n')
+            file.write(f'{bath_name}            {settings.initial_molecules}\n')
+################################################################################
+    def run_md2(self, settings, role):
+        if role == 'pure':
+            topology = 'Pure.top'
+            suffix = ''
+        elif role == 'mixture':
+            topology = 'Mixture.top'
+            suffix = '_solute'
+        else:
+            raise ValueError(f"role must be 'pure' or 'mixture', got {role!r}")
+    
+        # Energy minimisation of the full box
+        gromacs.grompp(
+            f='minim.mdp', c=f'out{suffix}.gro', p=topology,
+            o=f'em1{suffix}.tpr', maxwarn=2,
+        )
+        gromacs.mdrun(
+            '-v', deffnm=f'em1{suffix}',
+            ntmpi=self.ntmpi, ntomp=self.ntomp,
+            pin=self.pin, pinoffset=self.pinoffset,
+        )
+    
+        # NVT equilibration
+        gromacs.grompp(
+            f='nvt.mdp', c=f'em1{suffix}.gro', p=topology,
+            o=f'nvt_eq{suffix}.tpr', maxwarn=2,
+        )
+        gromacs.mdrun(
+            '-v', deffnm=f'nvt_eq{suffix}',
+            ntmpi=self.ntmpi, ntomp=self.ntomp,
+            pin=self.pin, pinoffset=self.pinoffset,
+        )
+    
+        # NPT equilibration
+        gromacs.grompp(
+            f='npt.mdp', c=f'nvt_eq{suffix}.gro', p=topology,
+            o=f'npt{suffix}.tpr', maxwarn=2,
+        )
+        gromacs.mdrun(
+            '-v', deffnm=f'npt{suffix}',
+            ntmpi=self.ntmpi, ntomp=self.ntomp,
+            pin=self.pin, pinoffset=self.pinoffset,
+        )
 ################################################################################
     def create_mdpfile(self,HOMEDIR,mdpfile,T,p):
+
         T_kelvin = T  # temperature / K
         p_bar = p  # pressure / bar
         replace_dict = {'TEMPERATURE': f'{T_kelvin}',
@@ -47,87 +175,49 @@ class Gro_Simulations(object):
         with open(mdpfile, 'w') as file:
             file.write(data)
 ################################################################################
-    def process_trajectory(self,system_title,Mixture):
+    def process_trajectory(self,settings, role):
         print('processing trajectory')
-        input_str = '0\n'
-          
-        tmp = gromacs.tools.Trjconv(f=f'{system_title}_QMMM_md3.xtc',
-                            s=f'{system_title}_QMMM_md3.tpr',
-                            o=f'conf_.gro',
-                            input=input_str,
-                            pbc='whole',
-                            b=1000, dt=20, sep=True)
+        if role == 'pure':
+            runname = 'Pure_QMMM_md3'
+        elif role == 'mixture':
+            runname = 'Mixture_QMMM_md3'
+        else:
+            raise ValueError(f"role must be 'pure' or 'mixture', got {role!r}")
+    
+        print('processing trajectory')
+        tmp = gromacs.tools.Trjconv(
+            f=f'{runname}.xtc',
+            s=f'{runname}.tpr',
+            o='conf_.gro',
+            input='0\n',
+            pbc='whole',
+            b=1000, dt=20, sep=True,
+        )
         chk, stdout, stderr = tmp.run()
-################################################################################
-    def process_gro(self):
-        print('processing conf_*.gro files')
-        logfile = open('junk.log', 'w')
-        cmd5 = ["gfortran -o Shell_Oniom Shell_Oniom.f90 && ./Shell_Oniom"]
-        subprocess.call(cmd5, shell=True, stdout=logfile, stderr=logfile)
-################################################################################
-    def run_md1(self,Gro_File,Topology_File,L,initial_molecules,solresnametop,Mixture, MD='Vacuum'):
-        L=L+1.7
-        print('performing molecular dynamics')
-        gromacs.check(c=Gro_File,)
-        gromacs.editconf(f=Gro_File, box=[L,L,L], o=Gro_File,)
-        gromacs.check(c=Gro_File,)
 
-        # gmx grompp -f md.mdp -c argon_start.pdb -p argon.top
-        gromacs.grompp(f='minim_vacuum.mdp', c=Gro_File, p=Topology_File, o='em.tpr', maxwarn=2)
-
-        # gmx mdrun -s topol.tpr -v -c argon_1ns.gro -nice 0
-        gromacs.mdrun('-v', deffnm='em', ntmpi=self.ntmpi, ntomp=self.ntomp, pin=self.pin, pinoffset=self.pinoffset)
-    
-        # gmx grompp -f md.mdp -c argon_start.pdb -p argon.top
-        gromacs.grompp(f='nvt_vacuum.mdp', c='em.gro', p=Topology_File, o='nvt_vacuum2.tpr', maxwarn=2)
-    
-        # gmx mdrun -s topol.tpr -v -c argon_1ns.gro -nice 0
-        gromacs.mdrun('-v',deffnm='nvt_vacuum2', ntmpi=self.ntmpi, ntomp=self.ntomp, pin=self.pin, pinoffset=self.pinoffset)
-        
-        self.insert_Molecules(Gro_File,initial_molecules,Mixture)
-        self.Write_to_top(Topology_File,initial_molecules,solresnametop)
 ################################################################################
-    def run_md2(self,Topology_File,Mixture, MD='Box'):
-
-        # gmx grompp -f md.mdp -c argon_start.pdb -p argon.top
-        gromacs.grompp(f='minim.mdp', c='out.gro',p=Topology_File, o='em1.tpr', maxwarn=2)
+    def run_md3(self, settings, role, HOMEDIR, T, p):
+        if role == 'pure':
+            topology = 'Pure.top'
+            runname = f'Pure_QMMM_md3'
+            suffix = ''
+        elif role == 'mixture':
+            topology = 'Mixture.top'
+            suffix = '_solute'
+            runname = f'Mixture_QMMM_md3'
+        else:
+            raise ValueError(f"role must be 'pure' or 'mixture', got {role!r}")
     
-        # gmx mdrun -s topol.tpr -v -c argon_1ns.gro -nice 0
-        gromacs.mdrun('-v', deffnm='em1', ntmpi=self.ntmpi, ntomp=self.ntomp, pin=self.pin, pinoffset=self.pinoffset)
-    
-        # gmx grompp -f md.mdp -c argon_start.pdb -p argon.top
-        gromacs.grompp(f='nvt.mdp', c='em1.gro', p=Topology_File, o=f'nvt_eq.tpr', maxwarn=2)
-
-        # gmx mdrun -s topol.tpr -v -c argon_1ns.gro -nice 0
-        gromacs.mdrun('-v', deffnm=f'nvt_eq', ntmpi=self.ntmpi, ntomp=self.ntomp, pin=self.pin, pinoffset=self.pinoffset)     
-        
-        # gmx grompp -f md.mdp -c argon_start.pdb -p argon.top
-        gromacs.grompp(f='npt.mdp', c='nvt_eq.gro', p=Topology_File, o=f'system.tpr', maxwarn=2)
-    
-        # gmx mdrun -s topol.tpr -v -c argon_1ns.gro -nice 0
-        gromacs.mdrun('-v', deffnm=f'system', ntmpi=self.ntmpi, ntomp=self.ntomp, pin=self.pin, pinoffset=self.pinoffset)
-################################################################################
-    def run_md3(self,mdpfile,HOMEDIR,system_title,T,p,Mixture, MD='Production'):
+        mdpfile='Prod.mdp'
         self.create_mdpfile(HOMEDIR,mdpfile,T,p)
         print('performing molecular dynamics')
 
-        mdpfile = f'{mdpfile}'
-        grofile = HOMEDIR+f'/system.gro'
-        topol = HOMEDIR+f'/{system_title}.top'
-        print(f'mdpfile:{mdpfile} \n grofile: {grofile}\n topol: {topol}')
-
-        runname = f'{system_title}_QMMM_md3'
-        edrfile = f'{runname}.edr'
-        groout = f'{runname}.gro'
-        xtcfile = f'{runname}.xtc'
-        trrfile = f'{runname}.trr'
-        tprfile = f'{runname}.tpr'
-        # gmx grompp -f md.mdp -c argon_start.pdb -p argon.top
-        
         gromacs.grompp(f=mdpfile, c=grofile, p=topol, o=tprfile, maxwarn=2)
-        # gmx mdrun -s topol.tpr -v -c argon_1ns.gro -nice 0
-        gromacs.mdrun('-v', s=tprfile, c=groout, o=trrfile, x=xtcfile, e=edrfile, ntmpi=self.ntmpi, ntomp=self.ntomp, pin=self.pin, pinoffset=self.pinoffset)
-        
-        self.process_trajectory(system_title,Mixture)
-        self.process_gro(Mixture)
+        gromacs.mdrun(
+            '-v', s=tprfile, c=groout, o=trrfile, x=xtcfile, e=edrfile,
+            ntmpi=self.ntmpi, ntomp=self.ntomp,
+            pin=self.pin, pinoffset=self.pinoffset,
+        )
+    
+        self.process_trajectory(settings, role)
 ################################################################################

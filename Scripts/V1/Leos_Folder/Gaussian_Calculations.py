@@ -11,29 +11,41 @@ import numpy as np
 
 import Atoms
 import Simulations_Analysis
+from Shell_Oniom import ShellOniom
 
 Atoms_Dict=Atoms.Atoms()
 Analysis=Simulations_Analysis.Simulations_Analysis() 
 ################################################################################
 class Gaussian_Calculations(object):
-    def __init__(self):
-        self.runname = 'TIP4P2005'       
-
-        #self.basis_v0 = 'aug-cc-pvtz'
-        #self.method_v0 = 'b3lyp'
-        #self.basis_v1 = 'aug-cc-pvtz'
-        #self.method_v1 = 'b3lyp'
-        self.basis_v0 = '6-31+G(d,p)'
-        self.method_v0 = 'b3lyp'
-        self.basis_v1 = 'aug-cc-pvtz'
-        self.method_v1 = 'blyp'
+    def __init__(self, settings):
+        self.settings = settings
+        
+        # Gaussian runtime config
+        gauss = settings.software.gaussian
+        self.nproc = gauss.nproc
+        self.mem = gauss.mem
+        self.max_jobs = gauss.max_jobs
+        
+        if gauss.g09root_override is None:
+            raise NotImplementedError(
+                "Auto-detection of g09root not yet implemented. "
+                "Set Software.Gaussian.g09root_override in Settings.yml."
+            )
+        self.g09root = gauss.g09root_override
+        self.scratch_dirs = [gauss.scratch_dir]
+        
+        # Electronic structure: v0 = optimisation step, v1 = single point
+        es = settings.advanced.electronic_structure
+        self.method_v0 = es.v0.method
+        self.basis_v0 = es.v0.basis
+        self.method_v1 = es.v1.method
+        self.basis_v1 = es.v1.basis
 #################################################################################      
     def gro_to_dat(self):
         f=open('nvt_vacuum2.gro')
         gro_file = f.readlines()        
         f.close()
-        gro_file=gro_file[2:]
-        gro_file=gro_file[:-1]
+        gro_file = gro_file[2:-1]
         gro_dict=self.get_gro(gro_file)  
         gro_df=pd.DataFrame(gro_dict)
         gro_df.columns=['Residue','gro_atom','atom_number','x','y','z','Vel x','Vel y','Vel z']
@@ -46,7 +58,7 @@ class Gaussian_Calculations(object):
         z_mean=gro_df['z'].mean()
         for index, row in gro_df.iterrows():
             Gros=gro_df.iloc[index]['gro_atom']
-            dat_atom=Atoms.Atom_Types(Gros,Masses=0)
+            dat_atom = Atoms_Dict.gaussian_symbol_from_gro_name(row['gro_atom'])
             dat_x=gro_df.iloc[index]['x']
             dat_x=(dat_x-x_mean)*10
             dat_y=gro_df.iloc[index]['y']
@@ -60,36 +72,32 @@ class Gaussian_Calculations(object):
             dat_zs.append(dat_z)
         return dat_atoms,dat_xs,dat_ys,dat_zs
 #################################################################################            
-    def get_gro(self,gro_file):
-        gro_dict = []                
+    def get_gro(self, gro_file):
+        gro_dict = []
         for line in gro_file:
             data = line.split()
-            gro_dicts = {'Residue': data[0],
-                         'gro_atoms': data[1],
-                         'atom_number': data[2],
-                         'x': float(data[3]),
-                         'y': float(data[4]),
-                         'z': float(data[5]),
-                         'Vel x': float(data[6]),
-                         'Vel y': float(data[7]),
-                         'Vel z': float(data[8])}
+            gro_dicts = {
+                'Residue': data[0],
+                'gro_atoms': data[1],
+                'atom_number': data[2],
+                'x': float(data[3]),
+                'y': float(data[4]),
+                'z': float(data[5]),
+            }
+            # Velocities are optional in .gro format
+            if len(data) >= 9:
+                gro_dicts['Vel x'] = float(data[6])
+                gro_dicts['Vel y'] = float(data[7])
+                gro_dicts['Vel z'] = float(data[8])
             gro_dict.append(gro_dicts)
         return gro_dict
 ################################################################################
     def read_multipoles(self, filename):
-#        outfile = '../TIP4P/tmp/opt_b3lypaug-cc-pvtz_spb3lyp/TIP4P2005_c1_q1_v1.out'
-#        outfile = '../tmp/opt-test/wat_SPCE_oniom_c1_q1_v1.out'
-#        filename = './opt-orig/TIP4P2005_c14_q1_v1.out'
+    
         f = open(filename, 'r')
         text_file = f.read()
         f.close()
-    
-#        re_str = ' Dipole moment \(field-independent basis, Debye\):(?:.*\n){17}'
-#        raw_data = re.findall(re_str, text_file, re.M)
-#        data = raw_data[-1].split('\n')
-#        for line in data:
-#            print(line)
-
+        
         multipole = {}
             
         re_dipole = ' Dipole moment \(field-independent basis, Debye\):(?:.*\n){2}'
@@ -160,49 +168,44 @@ class Gaussian_Calculations(object):
         return multipole
     
 ################################################################################
-################################################################################
-    def get_multipole_statistics(self,dips_out,rundir):
+    def get_multipole_statistics_scee(self, rundir):
         raw_dict = {}
-        case_dict = {1: 'dipole_l', 2: 'dipole_m', 3: 'dipole_h'}      #This needs sorting.  
-        for Q in range(1,4):
-#            print(Q)
-            filelist = glob.glob(rundir + f'{dips_out}.out')
+        case_dict = {1: 'dipole_l', 2: 'dipole_m', 3: 'dipole_h'}
+    
+        for Q in range(1, 4):
+            filelist = glob.glob(rundir + f'*_c*_q{Q}_v1.out')
             for filename in filelist:
                 multipole = self.read_multipoles(filename)
                 config = filename.split('_')[-3].replace('c', '')
                 if config not in raw_dict:
                     raw_dict[config] = {}
                 raw_dict[config][case_dict[Q]] = multipole['total dipole']
-    
-                #print(filename, config, case_dict[Q], multipole['total dipole'])
-                
-        data_dict = {'config': [], 'dipole_l': [], 'dipole_m': [], 'dipole_h': []}    
+        
+        data_dict = {'config': [], 'dipole_l': [], 'dipole_m': [], 'dipole_h': []}
         for config, value in raw_dict.items():
-            dipole_l=value.get('dipole_l')
-            dipole_m=value.get('dipole_m')
-            dipole_h=value.get('dipole_h')
-            if not any(np.isnan(x) for x in [dipole_l,dipole_m,dipole_h]):
+            dipole_l = value.get('dipole_l')
+            dipole_m = value.get('dipole_m')
+            dipole_h = value.get('dipole_h')
+            if not any(np.isnan(x) for x in [dipole_l, dipole_m, dipole_h]):
                 data_dict['config'].append(config)
                 data_dict['dipole_l'].append(dipole_l)
                 data_dict['dipole_m'].append(dipole_m)
                 data_dict['dipole_h'].append(dipole_h)
-                #print(config)
-
-        df = pd.DataFrame.from_dict(data_dict)
-        return df           
-################################################################################
-    def process_gro(self, exe, inp):
     
-        shutil.copy2(HOMEDIR +'/' + 'oniom.inp', '.')
-        shutil.copy2(HOMEDIR +'/' + 'shellO', '.')
-        shutil.copy2(HOMEDIR +'/' + 'Shell_Oniom.f90', '.')
-        print('processing conf_*.gro files')
-        logfile = open('junk.log', 'w')
-        cmd = [exe]
-        check_call(cmd, stdout=logfile, stderr=logfile)
+        return pd.DataFrame.from_dict(data_dict)
+################################################################################
+    def get_single_dipole(self, rundir, name):
+    
+        filename = rundir + f'{name}.out'
+        multipole = self.read_multipoles(filename)
+        return pd.DataFrame.from_dict(multipole['total dipole'])   
+################################################################################
+    def process_gro(self, oniom_inp_path):
+        shell = ShellOniom()
+        shell.process(oniom_inp_path)
 
 ################################################################################
-    def run_gaussian(self, run_str, step=0):
+    def run_gaussian(self, rundir, run_str, step=0):
 
         step_str = ''
         if (step == 1):
@@ -211,7 +214,7 @@ class Gaussian_Calculations(object):
         scratch_list_bash = ' '.join(self.scratch_dirs)
 
         text  = '#!/bin/bash' + '\n'
-        text += f'cd {self.rundir}' + '\n'
+        text += f'cd {rundir}' + '\n'
         text += f'export g09root={self.g09root}' + '\n'
         text += 'source $g09root/g09/bsd/g09.profile' + '\n'
 
@@ -260,10 +263,11 @@ class Gaussian_Calculations(object):
         
 
 ################################################################################
-    def init0(self,sol_keyword,Gaus='Vacuum', workdir='./'):
+    def init0(self):
         rundir = 'Vacuum/'
+        sol_keyword = self.settings.molecule.sol_keyword
         dat_atoms,dat_xs,dat_ys,dat_zs=self.gro_to_dat()
-        
+    
         text = f'%chk=Vacuum.chk\n'
         text += f'%nprocshared={self.nproc}\n'
         text += f'%mem={self.mem}\n'
@@ -275,33 +279,41 @@ class Gaussian_Calculations(object):
         for dat_atom,dat_x,dat_y,dat_z in zip(dat_atoms,dat_xs,dat_ys,dat_zs):
             text += f'{dat_atom:s} {dat_x:9.4f} {dat_y:8.4f} {dat_z:8.4f}\n'
         text += '\n'  
+                        
+        text  += f'--Link1--\n'              
+        text += f'%chk=Vacuum.chk' + '\n'        
+        text += f'%nprocshared={self.nproc}' + '\n'
+        text += f'#p {self.method_v0}/{self.basis_v0} gfprint fopt=tight' + '\n'
+        text += '# nosymm pop=full scf=(verytight) density=current\n'
+        text += '# integral=(ultrafine,NoXCTest) geom=checkpoint\n\n'
+        text += f'{sol_keyword}\n\n'
+        text += '0 1 \n\n\n\n'
         
-        if (not os.path.isdir(workdir + rundir)):
-            os.mkdir(workdir + rundir)
+        
+        if (not os.path.isdir(rundir)):
+            os.mkdir(rundir)
             
-        f = open(workdir + rundir+'Vacuum.dat', 'w')
+        f = open(rundir+'Vacuum.dat', 'w')
         f.write(text)
         f.close()
         run_str='Vacuum'
-        self.run_gaussian(run_str,step=0)
-        dips_out=run_str
-        df4 = self.get_multipole_statistics(dips_out,rundir)
-        muG_list=df4.mean()
-        df4['muG'] = muG_list
-        df4.to_csv('Dipole_Vacuum.csv', index=False)
-        print(muG_list)
+        self.run_gaussian(rundir,run_str,step=0)
         
-        mu_Vacuum=df4['muG']
+        Vacuum = self.get_single_dipole(rundir, 'Vacuum')
+        pd.DataFrame({'Vacuum': [PCM2]}).to_csv('Dipole_Vacuum.csv', index=False)
         return mu_Vacuum
 ################################################################################
-    def init1(self,sol_keyword,exp_diconst,Gaus='PCM1', workdir='./'):
+    def init1(self):
+        sol_keyword = self.settings.molecule.sol_keyword
+        exp_diconst = self.settings.molecule.dielectric_constant
+    
         rundir = 'PCM1/'
         dat_atoms,dat_xs,dat_ys,dat_zs=self.gro_to_dat()
                 
         text = f'%chk=PCM1.chk\n'
         text += f'%nprocshared={self.nproc}\n'
         text += f'%mem={self.mem}\n'
-        text += f'#p b3lyp/cc-pvtz gfprint scrf=(pcm,solvent={sol_keyword},read)' + '\n'
+        text += f'#p {self.method_v0}/{self.basis_v0} gfprint scrf=(pcm,solvent={sol_keyword},read)' + '\n'
         text += '# nosymm pop=full density=current scf=(verytight)\n'
         text += '# integral=(ultrafine,NoXCTest)\n\n'
         text += f'{sol_keyword}\n\n'
@@ -316,32 +328,30 @@ class Gaussian_Calculations(object):
         text += f'%chk=PCM1.chk\n'
         text += f'%nprocshared={self.nproc}\n'
         text += f'%mem={self.mem}\n'
-        text += f'#p b3lyp/aug-cc-pvtz gfprint scrf=(pcm,solvent={sol_keyword},read)' + '\n'
+        text += f'#p {self.method_v1}/{self.basis_v1} gfprint scrf=(pcm,solvent={sol_keyword},read)' + '\n'
         text += '# nosymm pop=full scf=(verytight) density=current' + '\n'
         text += '# integral=(ultrafine,NoXCTest) geom=checkpoint\n\n'
         text += f'{sol_keyword}\n\n'
         text += '0 1 \n\n'
         text += f'eps={exp_diconst}\n\n\n\n'
         
-        if (not os.path.isdir(workdir + rundir)):
-            os.mkdir(workdir + rundir)
+        if (not os.path.isdir(rundir)):
+            os.mkdir(rundir)
         
-        f = open(workdir + rundir+'PCM1.dat', 'w')
+        f = open(rundir+'PCM1.dat', 'w')
         f.write(text)
         f.close()
                 
         run_str='PCM1'
-        self.run_gaussian(run_str,step=0)
-        dips_out=run_str
-        df4 = self.get_multipole_statistics(dips_out,rundir)
-        muL_list1=df2.mean()
-    
-        df2['muL_PCM1'] = muL_list1
-        df2.to_csv('Dipole_PCM1.csv', index=False)
-        PCM1= df2['muL_PCM1']
+        self.run_gaussian(rundir,run_str,step=0)
+        PCM1 = self.get_single_dipole(rundir, 'PCM1')
+        pd.DataFrame({'PCM1': [PCM1]}).to_csv('Dipole_PCM1.csv', index=False)
         return PCM1
 ################################################################################
-    def init2(self,sol_keyword,cal_diconst,Gaus='PCM2', workdir='./'):
+    def init2(self):
+        sol_keyword = self.settings.molecule.sol_keyword
+        cal_diconst = self.settings.molecule.calculated_dielectric
+    
         rundir = 'PCM2/'
         dat_atoms,dat_xs,dat_ys,dat_zs=self.gro_to_dat()
 
@@ -349,7 +359,7 @@ class Gaussian_Calculations(object):
         text = f'%chk=PCM2.chk' + '\n'        
         text += f'%nprocshared={self.nproc}\n'
         text += f'%mem={self.mem}\n'
-        text += f'#p b3lyp/cc-pvtz gfprint scrf=(pcm,solvent={sol_keyword},read)' + '\n'
+        text += f'#p {self.method_v0}/{self.basis_v0} gfprint scrf=(pcm,solvent={sol_keyword},read)' + '\n'
         text += '# nosymm pop=full scf=(verytight) density=current\n'
         text += '# integral=(ultrafine,NoXCTest)\n\n'
         text += f'{sol_keyword}\n\n'
@@ -363,34 +373,29 @@ class Gaussian_Calculations(object):
         text += f'%chk=PCM2.chk' + '\n'   
         text += f'%nprocshared={self.nproc}\n'
         text += f'%mem={self.mem}\n'
-        text += f'#p b3lyp/aug-cc-pvtz gfprint scrf=(pcm,solvent={sol_keyword},read)' + '\n'
+        text += f'#p {self.method_v1}/{self.basis_v1} gfprint scrf=(pcm,solvent={sol_keyword},read)' + '\n'
         text += '# nosymm pop=full scf=(verytight) density=current' + '\n'
         text += '# integral=(ultrafine,NoXCTest) geom=checkpoint\n\n'
         text += f'{sol_keyword}\n\n'
         text += '0 1 \n\n'
         text += f'eps={cal_diconst}\n\n\n\n' 
                
-        if (not os.path.isdir(workdir + rundir)):
-            os.mkdir(workdir + rundir)
+        if (not os.path.isdir(rundir)):
+            os.mkdir(rundir)
         
-        f = open(workdir + rundir+'PCM2.dat', 'w')
+        f = open(rundir+'PCM2.dat', 'w')
         f.write(text)
         f.close()
                 
         run_str='PCM2'
-        self.run_gaussian(run_str,step=0)
+        self.run_gaussian(rundir,run_str,step=0)
 
-        dips_out=run_str
-        df4 = self.get_multipole_statistics(dips_out,rundir)
-        muL_list2=df3.mean()
-   
-        df3['muL_PCM2'] = muL_list2
-        df3.to_csv('Dipole_PCM2.csv', index=False)
-        PCM2=df3['muL_PCM2']
+        PCM2 = self.get_single_dipole(rundir, 'PCM2')
+        pd.DataFrame({'PCM2': [PCM2]}).to_csv('Dipole_PCM2.csv', index=False)
         
         return PCM2
 ################################################################################
-    def init3(self,Gaus='SCEE_V0', workdir='./'):
+    def init3(self):
     
         rundir = 'SCEE/'
         
@@ -403,9 +408,9 @@ class Gaussian_Calculations(object):
         text += 'qteste\n\n'
         text += '0 1 0 1 0 1\n'
 
-        if (not os.path.isdir(workdir + rundir)):
-            os.mkdir(workdir + rundir)
-        filelist = glob.glob(workdir + '*_c*_q?.inp')
+        if (not os.path.isdir(rundir)):
+            os.mkdir(rundir)
+        filelist = glob.glob('*_c*_q?.inp')
         print(filelist)
         for inpfile in filelist:
             text_str = text
@@ -413,7 +418,7 @@ class Gaussian_Calculations(object):
             file0_str = inpfile.replace('.inp', '')
             print(file0_str)
             file0_str = file0_str.split('/')[-1]
-            datfile = workdir + rundir + file0_str + '.dat'
+            datfile = rundir + file0_str + '.dat'
             print(datfile)
         
             f = open(inpfile, 'r')
@@ -425,10 +430,10 @@ class Gaussian_Calculations(object):
             f.close()
                 
         run_str='*_c*_q?'
-        self.run_gaussian(run_str,step=0)
+        self.run_gaussian(rundir,run_str,step=0)
         
 ################################################################################
-    def init4(self,ref_ind,Gaus='SCEE_V1', workdir='./'):
+    def init4(self):
         rundir = 'SCEE/'
 
         text  = f'%nprocshared={self.nproc}\n'
@@ -441,13 +446,15 @@ class Gaussian_Calculations(object):
         
         re_str = 'Z-Matrix orientation:(?:.*\n){' + str(5+self.natom) + '}'
         
-        filelist = glob.glob(workdir + '*_c*_q?_chg.inp')
+        filelist = glob.glob('*_c*_q?_chg.inp')
         print(filelist)
-        Model_Dipole=Analysis.get_dipole_model_liquid(system_title) 
-        ratio=Model_Dipole / qmax
-        num1=qr1*ratio*qmax
-        num2=qr2*ratio*qmax
-        num3=qr3*ratio*qmax
+        
+        
+        Model_Dipole=Analysis.get_dipole_model_liquid() 
+        ratio=Model_Dipole / self.qmax
+        num1=self.settings.advanced.charge_scaling.qr1*ratio*self.qmax
+        num2=self.settings.advanced.charge_scaling.qr2*ratio*self.qmax
+        num3=self.settings.advanced.charge_scaling.qr3*ratio*self.qmax
         for inpfile in filelist:
 
             file0_str = inpfile.replace('_chg.inp', '')
@@ -455,8 +462,8 @@ class Gaussian_Calculations(object):
             
             text_str = f'%chk={file0_str}.chk' + '\n' + text
             
-            outfile = workdir + rundir + file0_str + '.out'
-            datfile = workdir + rundir + file0_str + '_v1.dat'
+            outfile = rundir + file0_str + '.out'
+            datfile = rundir + file0_str + '_v1.dat'
             print(outfile, datfile)
             f = open(outfile, 'r')
             text_file = f.read()
@@ -464,7 +471,7 @@ class Gaussian_Calculations(object):
             data = raw_data[-1].split('\n')
             for line in data[5:5+self.natom]:
                 row = line.split()
-                atom = Atoms.Atom_Symbol(Atom=int(row[1]))
+                atom = Atoms_Dict.Atom_Symbol(int(row[1]))
                 x, y, z = row[3], row[4], row[5]
                 text_str += f'{atom} {x} {y} {z}' + '\n'
             f.close()
@@ -479,13 +486,12 @@ class Gaussian_Calculations(object):
             f.close()
                 
         run_str='*_c*_q?'
-        self.run_gaussian(run_str,step=1)
-        dips_out=run_str+'_v1'
-        df4 = self.get_multipole_statistics(dips_out,rundir)
-        print(df1.describe())
-        print(df1.head())
+        self.run_gaussian(rundir,run_str,step=1)
+        scee_df = self.get_multipole_statistics_scee(rundir)
+        print(scee_df.describe())
+        print(scee_df.head())
         muL_list = []
-        for index, row in df1.iterrows():
+        for index, row in scee_df.iterrows():
              x = np.array([num1, num2, num3])
              y = np.array([row['dipole_l'], row['dipole_m'], row['dipole_h']])
              coeff = np.polyfit(x, y, 2)
@@ -498,8 +504,8 @@ class Gaussian_Calculations(object):
                  b = coeff[0] - 1
                  muL = - coeff[1]/b
              muL_list.append(muL)
-        df1['muL_SCEE'] = muL_list
-        df1.to_csv('Dipole_SCEE.csv', index=False)
-        SCEE=df1['muL_SCEE']        
+        scee_df['muL_SCEE'] = muL_list
+        scee_df.to_csv('Dipole_SCEE.csv', index=False)
+        SCEE=scee_df['muL_SCEE']        
         return SCEE
 ################################################################################
