@@ -1,0 +1,13 @@
+;Include forcefield parameters
+#include "forcefield.itp"
+
+
+#include "Solvent.itp"
+
+[ system ]
+; Name
+Ethanol
+
+[ molecules ]
+; Compound        #mols
+Solvent           1

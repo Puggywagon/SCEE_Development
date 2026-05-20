@@ -1,9 +1,11 @@
-- Testing with a variety of UA and AA models
-- Develop for other MD/Calculation softwares (i.e lampps, orca)
-- Topology builders
-- Mixtures
-- Electrostatics representations - Point Charges vs Smeared representations
-- Dielectric Spectra
-- Big Benchmark using a variety of molecules
-- Quadrupoles
-- Changing the Oniom from fortran to python
+- [ ] Testing with a variety of UA and AA models
+- [ ] Develop for other MD/Calculation softwares (i.e lampps, orca)
+- [ ] Topology builders
+- [ ] Mixtures
+- [ ] Electrostatics representations - Point Charges vs Smeared representations
+- [ ] Dielectric Spectra
+- [ ] Big Benchmark using a variety of molecules
+- [ ] Quadrupoles
+- [ ] Changing the Oniom from fortran to python
+	- We are currently testing this
+- [ ] Check pointing

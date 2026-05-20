@@ -29,7 +29,6 @@ from Settings_Loader import load_settings
 def dir_System(System_Title):
     dire = f'{System_Title}'
     os.chdir(dire)
-
 ################################################################################
 def save_settings_snapshot(settings, source_path):
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
