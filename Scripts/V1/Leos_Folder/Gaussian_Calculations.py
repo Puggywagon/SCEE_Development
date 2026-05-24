@@ -65,7 +65,6 @@ class Gaussian_Calculations(object):
             dat_y=(dat_y-y_mean)*10
             dat_z=gro_df.iloc[index]['z']
             dat_z=(dat_z-z_mean)*10
-            print(f'{dat_x},{dat_y},{dat_z}')
             dat_atoms.append(dat_atom)
             dat_xs.append(dat_x)
             dat_ys.append(dat_y)
@@ -188,17 +187,34 @@ class Gaussian_Calculations(object):
             dipole_h = value.get('dipole_h')
             if not any(np.isnan(x) for x in [dipole_l, dipole_m, dipole_h]):
                 data_dict['config'].append(config)
+        case_dict = {1: 'dipole_l', 2: 'dipole_m', 3: 'dipole_h'}
+
+        for Q in range(1, 4):
+            filelist = glob.glob(rundir + f'*_c*_q{Q}_v1.out')
+            for filename in filelist:
+                multipole = self.read_multipoles(filename)
+                config = filename.split('_')[-3].replace('c', '')
+                if config not in raw_dict:
+                    raw_dict[config] = {}
+                raw_dict[config][case_dict[Q]] = multipole['total dipole']
+
+        data_dict = {'config': [], 'dipole_l': [], 'dipole_m': [], 'dipole_h': []}
+        for config, value in raw_dict.items():
+            dipole_l = value.get('dipole_l')
+            dipole_m = value.get('dipole_m')
+            dipole_h = value.get('dipole_h')
+            if not any(np.isnan(x) for x in [dipole_l, dipole_m, dipole_h]):
+                data_dict['config'].append(config)
                 data_dict['dipole_l'].append(dipole_l)
                 data_dict['dipole_m'].append(dipole_m)
                 data_dict['dipole_h'].append(dipole_h)
-    
+
         return pd.DataFrame.from_dict(data_dict)
 ################################################################################
     def get_single_dipole(self, rundir, name):
-    
         filename = rundir + f'{name}.out'
         multipole = self.read_multipoles(filename)
-        return pd.DataFrame.from_dict(multipole['total dipole'])   
+        return multipole['total dipole']  
 ################################################################################
     def process_gro(self, oniom_inp_path):
         shell = ShellOniom()
@@ -299,8 +315,8 @@ class Gaussian_Calculations(object):
         run_str='Vacuum'
         self.run_gaussian(rundir,run_str,step=0)
         
-        Vacuum = self.get_single_dipole(rundir, 'Vacuum')
-        pd.DataFrame({'Vacuum': [PCM2]}).to_csv('Dipole_Vacuum.csv', index=False)
+        mu_Vacuum = self.get_single_dipole(rundir, 'Vacuum')
+        pd.DataFrame({'Vacuum': [mu_Vacuum]}).to_csv('Dipole_Vacuum.csv', index=False)
         return mu_Vacuum
 ################################################################################
     def init1(self):
@@ -450,7 +466,7 @@ class Gaussian_Calculations(object):
         print(filelist)
         
         
-        Model_Dipole=Analysis.get_dipole_model_liquid() 
+        Model_Dipole, _ =Analysis.get_dipole_model_liquid() 
         ratio=Model_Dipole / self.qmax
         num1=self.settings.advanced.charge_scaling.qr1*ratio*self.qmax
         num2=self.settings.advanced.charge_scaling.qr2*ratio*self.qmax
@@ -506,6 +522,6 @@ class Gaussian_Calculations(object):
              muL_list.append(muL)
         scee_df['muL_SCEE'] = muL_list
         scee_df.to_csv('Dipole_SCEE.csv', index=False)
-        SCEE=scee_df['muL_SCEE']        
-        return SCEE
+        
+        return scee_df
 ################################################################################

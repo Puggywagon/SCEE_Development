@@ -29,7 +29,6 @@ from Settings_Loader import load_settings
 def dir_System(System_Title):
     dire = f'{System_Title}'
     os.chdir(dire)
-
 ################################################################################
 def save_settings_snapshot(settings, source_path):
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
@@ -122,7 +121,6 @@ PCM2= Gauss.init2()
 
 dipole_model=Analysis.get_dipole_model() #I have discovered that this step stops later steps from being able to use -v
 gas_potential=Analysis.Pot_Gas() #I have discovered that this step stops later steps from being able to use -v
-print(dipole_model)
 
 HOMEDIR = os.getcwd()
 replicas = range(1, settings.state.replicas + 1)
@@ -132,12 +130,12 @@ for replica, T, p in itertools.product(replicas, settings.state.temperatures, se
     leaf = f'Simulations/replica_{replica}/{T:g}K/{p:g}Bar'
     with cd(leaf):
         MD.run_md3(settings, role='pure', HOMEDIR=HOMEDIR, T=T, p=p)
-        # Gaussian processing on the 200 configurations
+        #Gaussian processing on the 200 configurations
         Gauss.process_gro(oniom_inp_path=f'{HOMEDIR}/oniom.inp')
         Gauss.init3()
-        SCEE = Gauss.init4()
+        scee_df = Gauss.init4()
         
-        dipole_df = Analysis.process_dipole(SCEE, mu_Vacuum, PCM1, PCM2, settings)
+        dipole_df = Analysis.process_dipole(scee_df, mu_Vacuum, PCM1, PCM2, settings)
         sim_density = Analysis.Sim_Density()
         liq_dipole, model_eps = Analysis.get_dipole_model_liquid()
         liq_potential = Analysis.Pot_Liq()

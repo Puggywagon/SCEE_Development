@@ -9,3 +9,4 @@
 - [ ] Changing the Oniom from fortran to python
 	- We are currently testing this
 - [ ] Check pointing
+- [ ] Something for handling solvents not on the solvents list...

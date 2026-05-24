@@ -64,11 +64,13 @@ class Oniom_Generation(object):
     
         qilist = []
         for index, row in atoms.iterrows():
-            qilist.append(abs(atoms.iloc[index]['charge']))
-        qmax = max(qilist)
+            qilist.append(atoms.iloc[index]['charge'])
+        qmax_signed = max(qilist, key=abs)
+        qmax = float(abs(qmax_signed))     
+        
     
         if spicy == 0:
-            Central_Atom = qilist.index(qmax) + 1
+            Central_Atom = qilist.index(qmax_signed) + 1
         else:
             Central_Atom = spicy + 1
     
@@ -164,11 +166,12 @@ class Oniom_Generation(object):
         
         qilist = []
         for index, row in atoms.iterrows():
-            qilist.append(abs(atoms.iloc[index]['charge']))
-        qmax = max(qilist)
-        
+            qilist.append(atoms.iloc[index]['charge'])
+        qmax_signed = max(qilist,key=abs)
+        qmax = float(abs(qmax_signed))
+
         if spicy == 0:
-            Central_Atom = qilist.index(qmax) + 1
+            Central_Atom = qilist.index(qmax_signed) + 1
         else:
             Central_Atom = spicy + 1
     
@@ -225,9 +228,6 @@ class Oniom_Generation(object):
                     f'{Gaus:2s} {Gro:0s} {Sigma:6.4f} {Epsilon:5.4f} '
                     f'{q1:>8.5f} {q2:>8.5f} {q3:>8.5f}\n'
                 )
-    
-        with open(Oniom, 'a') as file:
-            file.write("\n")
     
 #################################################################################            
     def get_atomtypes(self,txt):

@@ -64,7 +64,7 @@
             }
           }
         ],
-        "currentTab": 3
+        "currentTab": 2
       }
     ],
     "direction": "vertical"
@@ -234,8 +234,9 @@
       "tasknotes:Create new task": false
     }
   },
-  "active": "0c845abdfb1eff0c",
+  "active": "f71d75f3cffea04b",
   "lastOpenFiles": [
+    "Personal Goals.md",
     "Future Work List.md",
     "Force Field Comparison.md",
     "Automation To Dos.md",
@@ -251,7 +252,6 @@
     "minim.mdp",
     "MD_Simulations.py",
     "Gro_Builder.py",
-    "Personal Goals.md",
     "Week Beginning 2026-04-20 - To Do.md",
     "Methods_Chapter_Planning/01 - Statistical Mechanics Foundations/01 - Classical Statistical Mechanics.md",
     "Write up to dos.md",

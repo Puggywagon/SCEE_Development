@@ -27,17 +27,14 @@ class Simulations_Analysis(object):
         f.close()
 
         # Search for "Average  =   2.3301  Std. Dev. =   0.1303  Error =   0.0003"
+        dipole_model = None
         for line in dipole_output.splitlines():
             stripped = line.strip()
-            if stripped.startswith('Average'):
+            if stripped.startswith('Average') and stripped.split()[1] == '=':
                 tokens = stripped.split()
-                # tokens[0]='Average', tokens[1]='=', tokens[2]='2.3301'
                 return float(tokens[2])
-    
-        raise ValueError(
-            "Could not find 'Average' line in gmx dipoles output. "
-            "Check Dipole.txt for the actual output."
-        )
+        if dipole_model is None:
+            raise RuntimeError("Could not find 'Average' dipole line in gmx dipoles output")
         return dipole_model
 ######################################################
     def get_dipole_model_liquid(self): 
@@ -53,20 +50,19 @@ class Simulations_Analysis(object):
             f.write(dipole_output)
         
         Model_Dipole = None
-        epsilon = None
+        Epsilon = None
     
         for line in dipole_output.splitlines():
             stripped = line.strip()
-            if stripped.startswith('Average') and Model_Dipole is None:
+            if stripped.startswith('Average') and stripped.split()[1] == '=' and Model_Dipole is None:
                 Model_Dipole = float(stripped.split()[2])
             elif stripped.startswith('Epsilon'):
-                # "Epsilon = 1.00112" → split on '=', take rhs
-                epsilon = float(stripped.split('=')[1].strip())
+                Epsilon = float(stripped.split('=')[1].strip())
     
         if Model_Dipole is None:
-            raise ValueError("Could not find 'Average' line in gmx dipoles output.")
-        if epsilon is None:
-            raise ValueError("Could not find 'Epsilon' line in gmx dipoles output.")
+            raise RuntimeError("Could not find 'Average  =' dipole line in gmx dipoles output")
+        if Epsilon is None:
+            raise RuntimeError("Could not find 'Epsilon =' line in gmx dipoles output")
             
         return Model_Dipole, Epsilon
 ################################################################################
@@ -118,7 +114,8 @@ class Simulations_Analysis(object):
         return np.mean(liq_data['Potential'][liq_mask])
 ############################################################################################################
     def process_dipole(self, scee_df, mu_Vacuum, PCM1, PCM2, settings):
-        delta_mu = scee_df['muL_SCEE'] * (PCM1 / PCM2) - mu_Vacuum
+        SCEE=scee_df['muL_SCEE']
+        delta_mu = SCEE * (PCM1 / PCM2) - mu_Vacuum
         mu_liquid = delta_mu + settings.molecule.gas_dipole
         
         df = scee_df[['config', 'dipole_l', 'dipole_m', 'dipole_h', 'muL_SCEE']].copy()
