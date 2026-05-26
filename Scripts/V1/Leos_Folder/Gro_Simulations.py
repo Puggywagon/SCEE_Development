@@ -186,6 +186,7 @@ class Gro_Simulations(object):
 
 ################################################################################
     def run_md3(self, settings, role, HOMEDIR, T, p):
+        gromacs.environment.flags['capture_output'] = False
         if role == 'pure':
             topology = HOMEDIR+f'/Pure.top'
             runname = f'Pure_QMMM_md3'
@@ -207,7 +208,7 @@ class Gro_Simulations(object):
         trrfile = f'{runname}.trr'
         tprfile = f'{runname}.tpr'
 
-        gromacs.grompp(f=mdpfile, c=grofile, p=topol, o=tprfile, maxwarn=2)
+        gromacs.grompp(f=mdpfile, c=grofile, p=topology, o=tprfile, maxwarn=2)
         gromacs.mdrun(
             '-v', s=tprfile, c=groout, o=trrfile, x=xtcfile, e=edrfile,
             ntmpi=self.ntmpi, ntomp=self.ntomp,
