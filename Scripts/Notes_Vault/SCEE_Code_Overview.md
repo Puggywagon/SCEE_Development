@@ -177,7 +177,7 @@ it as its first action), so all of the above live in that directory.
 | `Gas_Dip` | `process_dipole`, filtering | Experimental gas-phase dipole. Doubles as the **physical outlier floor** — configurations with μ_liquid below it are discarded. |
 | `Di_Const` | `init1` | Experimental ε, used in PCM1. |
 | `Ref_Ind` | `Settings_Loader`, dielectric correction | Refractive index n. |
-| `sol_keyword` | `init0/1/2` | Gaussian SCRF solvent keyword; must appear on the Gaussian SCRF solvent list. |
+| `sol_keyword` | `init0/1/2` | Gaussian SCRF solvent keyword. Must be one of the names on Gaussian's [SCRF solvent list](https://gaussian.com/scrf/) — see the *Solvents* section at the foot of that page. |
 | `density`, `mol_mass` | `Settings_Loader` | Used to compute how many molecules fill the box. |
 | `AA_Surround` | `Gro_Builder`, `insert_Molecules`, `MM_Inputs` | `Yes` → all-atom bath; `No` → united-atom bath. |
 | `Solvent_Smiles` | `Gro_Builder` | Set to `null` to supply your own `Solvent.gro` instead. |
@@ -407,6 +407,13 @@ position** and converted nm → Å. This geometry feeds the three reference calc
 | `init3` | `SCEE/` | `oniom(v0:amber=(print,SoftFirst,LastEquiv))=embedcharge`, `opt=quadmacro` | — (geometries only) |
 | `init4` | `SCEE/` | `v1` single point with `charge` (external point charges) | `scee_df` → `Dipole_SCEE.csv` |
 
+Both PCM jobs use `scrf=(pcm,solvent={sol_keyword},read)` with an `eps=` value supplied in the additional
+input section. The named solvent sets the cavity radii and the rest of Gaussian's internal parameters for
+that solvent; `eps=` then overrides the static dielectric constant alone. This matters for PCM2: the cavity
+is still the one Gaussian defines for the real solvent, and only ε is changed, which is exactly the
+controlled comparison the method needs. The keyword list and the accompanying ε values are documented on
+the [SCRF keyword page](https://gaussian.com/scrf/).
+
 All Gaussian inputs use `nosymm`, `pop=full`, `density=current`, `scf=(verytight)` and
 `integral=(ultrafine,NoXCTest)`, so dipoles are comparable across the whole set.
 
@@ -632,7 +639,8 @@ Written plainly, because these are the questions a reader will arrive at.
 ### Scope limits (by design, for now)
 - Developed and tested against **GROMACS + Gaussian 09** only.
 - Topologies must be **hand-built to match RDKit atom ordering**. This is the main manual step.
-- Solvent choice is restricted to keywords on Gaussian's SCRF solvent list (`sol_keyword`).
+- Solvent choice is restricted to keywords on [Gaussian's SCRF solvent list](https://gaussian.com/scrf/)
+  (`sol_keyword`). A solvent absent from that list would need defining through the PCM input section.
 - The **mixture branch is a stub**: `Run_SCEE.py` builds the solute, runs `run_md1`, `run_md2` and `run_md3`
   for the mixture, and stops. No ONIOM generation, Gaussian calculation or analysis follows.
 - `g09root` auto-detection is not implemented.
@@ -659,6 +667,17 @@ Written plainly, because these are the questions a reader will arrive at.
 - **The `Results/` directory must exist** before the run; nothing creates it.
 - **The throttle counts all `g09` and `mdrun` processes**, including any belonging to other work on the same
   machine.
+
+---
+
+## External references
+
+- **[Gaussian SCRF keyword documentation](https://gaussian.com/scrf/)** — the source of the `sol_keyword`
+  values. The *Solvents* section at the foot of the page lists every accepted solvent name. Note Gaussian's
+  own caveat: the ε printed alongside each name is one of several internal parameters defining that solvent,
+  so changing ε alone does not define a new solvent.
+- **[ONIOM technical note](https://gaussian.com/oniom_technote/)** — background on the ONIOM scheme used in
+  `init3`.
 
 ---
 
