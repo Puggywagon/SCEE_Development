@@ -1,0 +1,13 @@
+;Include forcefield parameters
+#include "TrappeFF_optimum.itp"
+
+
+#include "Solvent.itp"
+#include "Solvent_UA.itp"
+
+
+[system]
+Propylamine
+
+[molecules]
+Solvent 1
