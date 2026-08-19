@@ -11,17 +11,17 @@ State_Conditions:
 # Molecule Information
 #=================================================
 Molecule_Information:  
-    System_Title: Ethanol #What name are you using for your system (please keep this the same as the folder you have generated for your molecule)
-    Gas_Dip: 1.690 # Please give us the gas phase of the molecule you are investigating Not sure where to put this when mixture
-    Di_Const: 24.852 # Please give us the experimental dielectric constant of the molecule you are investigating Not sure where to put this when mixture
-    Ref_Ind: 1.361 # Please give us the refractive index of the molecule you are investigating Not sure where to put this when mixture
-    sol_keyword: Ethanol #These can be obtained on the SCRF Website # Will need some guidance on what to do when this isn't available? Not sure where to put this when mixture
+    System_Title: Propylamine #What name are you using for your system (please keep this the same as the folder you have generated for your molecule)
+    Gas_Dip: 1.17 # Please give us the gas phase of the molecule you are investigating Not sure where to put this when mixture
+    Di_Const: 4.9912 # Please give us the experimental dielectric constant of the molecule you are investigating Not sure where to put this when mixture
+    Ref_Ind: 1.388 # Please give us the refractive index of the molecule you are investigating Not sure where to put this when mixture
+    sol_keyword: PropylAmine #These can be obtained on the SCRF Website # Will need some guidance on what to do when this isn't available? Not sure where to put this when mixture
     
-    density: 0.7849 # Experimental Density in g/cm^3 
-    mol_mass: 46.068 # Molar Mass of Molecule g/mol
+    density: 0.719 # Experimental Density in g/cm^3 
+    mol_mass: 59.11 # Molar Mass of Molecule g/mol
     
-    AA_Surround: Yes  # YES or No #If you want to use AA to describe your MM layer say yes, if no we will use UA.
-    Solvent_Smiles: OCC # Add a smile string here and we will use RD Kit to build your molecule. #Change to null to use your own gro_file
+    AA_Surround: No  # YES or No #If you want to use AA to describe your MM layer say yes, if no we will use UA.
+    Solvent_Smiles: NCCC # Add a smile string here and we will use RD Kit to build your molecule. #Change to null to use your own gro_file
     Mixture: No                # if No, Solute_Smiles is ignored
     Solute_Smiles: null        # only used if Mixture: Yes
 #=================================================

@@ -4,7 +4,7 @@
 State_Conditions:
     Temperature: [298] #Temperature in K, can be given as a list like [T1,T2,T3]
     Pressure: [1] #Pressure in Bar, can be given as a list like [T1,T2,T3]
-    Replicas: 5   # Number of replicas to run. e.g. Replicas: 5 produces replica_1 through replica_5.
+    Replicas: 1   # Number of replicas to run. e.g. Replicas: 5 produces replica_1 through replica_5.
    
 
 #=================================================
@@ -21,7 +21,7 @@ Molecule_Information:
     mol_mass: 46.068 # Molar Mass of Molecule g/mol
     
     AA_Surround: No  # YES or No #If you want to use AA to describe your MM layer say yes, if no we will use UA.
-    Solvent_Smiles: CCO # Add a smile string here and we will use RD Kit to build your molecule. #Change to null to use your own gro_file
+    Solvent_Smiles: OCC # Add a smile string here and we will use RD Kit to build your molecule. #Change to null to use your own gro_file
     Mixture: No                # if No, Solute_Smiles is ignored
     Solute_Smiles: null        # only used if Mixture: Yes
 #=================================================
@@ -50,6 +50,11 @@ Advanced_Settings:
         v1:
             method: blyp
             basis: aug-cc-pvtz
+    filtering:
+         iqr_k: 2.0                  # IQR multiplier (you already use 2.0)
+         max_iqr_passes: 2           # hard cap on how many IQR passes
+         min_pass_outliers: 3        # early termination: stop if a pass finds fewer than this
+         min_kept_configs: 150       # convergence floor
 #=================================================
 # Software Settings - Give us your software location and make adjustments if and only if you know what your doing.
 #=================================================
@@ -57,7 +62,7 @@ Software:
     GROMACS:
         ntmpi: 1
         ntomp: 8
-        pin: on
+        pin: "on"
         pinoffset: 0
     Gaussian:
         g09root_override: /home/zoe/Software/Gaussian/g09_pgi         # null = auto-detect; set to Gaussian install root to override

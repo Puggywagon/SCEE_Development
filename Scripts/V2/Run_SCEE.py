@@ -173,7 +173,8 @@ for T, p in itertools.product(settings.state.temperatures, settings.state.pressu
         (dipole_results['T'] == T) & (dipole_results['p'] == p)
     ].reset_index(drop=True)
     filter_results[(T, p)] = Analysis.plot_state_point(
-        df_pool, T, p, mu_Vacuum=mu_Vacuum,
+        df_pool, T, p, mu_Vacuum=mu_Vacuum,    
+        mu_filter_threshold=settings.molecule.gas_dipole, 
         k=settings.advanced.filtering.iqr_k,
         max_iqr_passes=settings.advanced.filtering.max_iqr_passes,
         min_pass_outliers=settings.advanced.filtering.min_pass_outliers,

@@ -146,147 +146,136 @@ class Simulations_Analysis(object):
     def _normal_pdf(self,x, mu, sigma):
         return (1.0 / (sigma * np.sqrt(2.0 * np.pi))) * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
 ######################################################
-    def plot_state_point(self, df_pool, T, p, mu_Vacuum, k=2.0, bin_width=0.25, x_ceil=10.0):
+    def plot_state_point(self, df_pool, T, p, mu_Vacuum,
+                     k, max_iqr_passes, min_pass_outliers, min_kept_configs,
+                     bin_width=0.25, x_ceil=10.0):
+    
         x_all = df_pool['mu_liquid'].astype(float).to_numpy()
         finite_mask = np.isfinite(x_all)
- 
+    
         if finite_mask.sum() < 5:
             print(f"Warning: <5 finite values at T={T}K, p={p}Bar — skipping")
-            return finite_mask 
- 
+            return {
+                'keep_mask': finite_mask,
+                'below_floor': True,
+                'n_passes_run': 0,
+            }
+    
         x_finite = x_all[finite_mask]
-        keep_iqr, out_iqr, (q1, q3, iqr, lo, hi) = self._iqr_masks(x_finite, k=k)
+    
+        # Identify pass-1 outliers (physical + first IQR) so the "raw" row can 
+        # announce what pass 1 will remove
+        keep_iqr1, out_iqr1, _ = self._iqr_masks(x_finite, k=k)
         out_phys = x_finite < mu_Vacuum
-        out_combined = out_iqr | out_phys
- 
-        stats_p1 = self._plot_distribution_pass(
-            x_finite, out_combined,
-            T=T, p=p, pass_label='raw',
-            bin_width=bin_width, x_ceil=x_ceil,
-        )
-        stats_p1.update({
+        out_pass1 = out_iqr1 | out_phys
+        
+        below_floor_flag = False
+        stats_rows = []
+    
+        # --- Row 1: raw baseline ---
+        stats_rows.append({
+            'N_total': int(x_finite.size),
+            'N_outliers': int(out_pass1.sum()),
+            'mean':   float(x_finite.mean()),    
+            'std':    float(x_finite.std(ddof=1)),
+            'median': float(np.median(x_finite)),
+            'q1':     float(np.percentile(x_finite, 25)),
+            'q3':     float(np.percentile(x_finite, 75)),
             'T': T, 'p': p, 'pass': 'raw',
             'N_outliers_phys': int(out_phys.sum()),
-            'N_outliers_stat': int(out_iqr.sum()),
+            'N_outliers_stat': int(out_iqr1.sum()),
             'mu_Vacuum_threshold': mu_Vacuum,
+            'below_floor': False,
         })
- 
-        keep_p1_inner = ~out_combined
-        x_p1_kept = x_finite[keep_p1_inner]
- 
-        if x_p1_kept.size < 5:
-            print(f"Warning: <5 values after pass 1 at T={T}K, p={p}Bar — "
-                  f"skipping pass 2")
-
-            keep_full = np.zeros(len(x_all), dtype=bool)
-            keep_full[finite_mask] = keep_p1_inner
-            self._append_stats_rows([stats_p1])
-            return keep_full
- 
-        keep_p2_inner, out_p2_inner, _ = self._iqr_masks(x_p1_kept, k=k)
- 
-        stats_p2 = self._plot_distribution_pass(
-            x_p1_kept, out_p2_inner,
-            T=T, p=p, pass_label='filtered',
-            bin_width=bin_width, x_ceil=x_ceil,
-        )
-        stats_p2.update({
+    
+        # --- Apply pass 1 ---
+        surviving_idx = np.where(~out_pass1)[0]   # indices into x_finite
+        x_current = x_finite[surviving_idx]
+        
+        if x_current.size < min_kept_configs:
+            print(f"WARNING: T={T}K p={p}Bar: after pass 1, {x_current.size} configs "
+                  f"remain — below floor of {min_kept_configs}.")
+            below_floor_flag = True
+    
+        # --- Iterative IQR passes ---
+        pass_num = 1   # pass 1 already done
+        while pass_num < max_iqr_passes and x_current.size >= 5:
+            keep_next, out_next, _ = self._iqr_masks(x_current, k=k)
+            n_removed = int(out_next.sum())
+        
+            # Record this pass's "going in" stats with the outliers IT identifies
+            stats_rows.append({
+                'N_total': int(x_current.size),
+                'N_outliers': n_removed,
+                'mean':   float(x_current.mean()),
+                'std':    float(x_current.std(ddof=1)) if x_current.size > 1 else np.nan,
+                'median': float(np.median(x_current)),
+                'q1':     float(np.percentile(x_current, 25)),
+                'q3':     float(np.percentile(x_current, 75)),
+                'T': T, 'p': p, 'pass': f'pass{pass_num}',
+                'N_outliers_phys': 0,
+                'N_outliers_stat': n_removed,
+                'mu_Vacuum_threshold': mu_Vacuum,
+                'below_floor': below_floor_flag,
+            })
+        
+            # Early termination: this pass found too few to be worth pursuing
+            if n_removed < min_pass_outliers:
+                break
+            
+            # Floor check: don't apply this pass if it would breach the floor
+            if x_current.size - n_removed < min_kept_configs:
+                print(f"WARNING: T={T}K p={p}Bar: pass {pass_num+1} would remove "
+                      f"{n_removed} configs, breaching floor of {min_kept_configs}. "
+                      f"Not applying.")
+                below_floor_flag = True
+                break
+        
+            # Apply this pass
+            surviving_idx = surviving_idx[keep_next]
+            x_current = x_finite[surviving_idx]
+            pass_num += 1
+    
+        # --- Final 'filtered' row: after all applied passes ---
+        stats_rows.append({
+            'N_total': int(x_current.size),
+            'N_outliers': 0,
+            'mean':   float(x_current.mean()) if x_current.size else np.nan,
+            'std':    float(x_current.std(ddof=1)) if x_current.size > 1 else np.nan,
+            'median': float(np.median(x_current)) if x_current.size else np.nan,
+            'q1':     float(np.percentile(x_current, 25)) if x_current.size else np.nan,
+            'q3':     float(np.percentile(x_current, 75)) if x_current.size else np.nan,
             'T': T, 'p': p, 'pass': 'filtered',
             'N_outliers_phys': 0,
-            'N_outliers_stat': int(out_p2_inner.sum()),
+            'N_outliers_stat': 0,
             'mu_Vacuum_threshold': mu_Vacuum,
+            'below_floor': below_floor_flag,
         })
- 
-        self._append_stats_rows([stats_p1, stats_p2])
-
-        keep_full = np.zeros(len(x_all), dtype=bool)
-
+    
+        self._append_stats_rows(stats_rows)
+    
+        # --- Single distribution plot: kept (purple) vs all removed (orange) ---
+        all_removed_mask = np.ones(x_finite.size, dtype=bool)
+        all_removed_mask[surviving_idx] = False
+        x_outliers = x_finite[all_removed_mask]
+        self._plot_distribution(x_current, x_outliers, T=T, p=p,
+                                bin_width=bin_width, x_ceil=x_ceil)
+        
+        # --- Build keep_full mask over x_all ---
         finite_indices = np.where(finite_mask)[0]
-        p1_kept_indices = finite_indices[keep_p1_inner]
-
-        p2_kept_indices = p1_kept_indices[keep_p2_inner]
-        keep_full[p2_kept_indices] = True
- 
-        return keep_full
-######################################################
-    def _plot_distribution_pass(self, x_all, outlier_mask, T, p, pass_label, bin_width=0.25, x_ceil=10.0):
-        x_keep = x_all[~outlier_mask]
-        x_out  = x_all[outlier_mask]
- 
-        if x_keep.size < 2:
-            print(f"Warning: <2 kept values at T={T}K, p={p}Bar pass={pass_label} "
-                  f"— cannot fit Gaussian")
-            return {
-                'N_total':    int(x_all.size),
-                'N_kept':     int(x_keep.size),
-                'N_outliers': int(x_out.size),
-                'mean':       float(x_keep.mean()) if x_keep.size else np.nan,
-                'std':        np.nan,
-                'median':     float(np.median(x_keep)) if x_keep.size else np.nan,
-            }
- 
-        mu    = x_keep.mean()
-        sigma = x_keep.std(ddof=1) 
-
-        q1, q3 = np.percentile(x_keep, [25, 75])
- 
-        xmin = 0.0
-        x_within_ceil = x_all[x_all <= x_ceil]
-        if x_within_ceil.size > 0:
-            xmax = np.ceil(x_within_ceil.max() / bin_width) * bin_width
-        else:
-            xmax = x_ceil
-        xmax = min(xmax, x_ceil)
- 
-        bin_edges = np.arange(xmin, xmax + bin_width, bin_width)
-        bw = bin_edges[1] - bin_edges[0]
- 
-
-        fig, ax = plt.subplots(figsize=(8, 6))
-        ax.hist(x_keep, bins=bin_edges, alpha=0.9, color='purple', label="Data")
-        if x_out.size:
-            x_out_visible = x_out[(x_out >= xmin) & (x_out <= xmax)]
-            if x_out_visible.size:
-                ax.hist(x_out_visible, bins=bin_edges, alpha=0.9,
-                        color='orange', label="Outliers")
- 
-
-        x_line = np.linspace(xmin - bin_width, xmax + bin_width, 400)
-        y_line = self._normal_pdf(x_line, mu, sigma) * x_keep.size * bw
-        ax.plot(x_line, y_line, color='#008080', linewidth=2,
-                label="Gaussian fit")
- 
-        ax.set_xlim(xmin, xmax)
-        raw_spacing = (xmax - xmin) / 8
-        tick_spacing = max(round(raw_spacing * 2) / 2, 0.5)
-        ax.set_xticks(np.arange(xmin, xmax + tick_spacing, tick_spacing))
- 
-        ax.set_xlabel(r'$\mu_{liquid}$ / D', fontsize=16)
-        ax.set_ylabel('Frequency', fontsize=16)
-        ax.set_title(f'T = {T} K, p = {p} Bar', fontsize=14)
-        ax.legend(frameon=False, fontsize=12)
-        ax.tick_params(axis='both', which='major', labelsize=12)
- 
-        plt.tight_layout()
-        fname = f'dipole_distribution_{pass_label}_T{T}K_p{p}Bar'
-        plt.savefig(f'{fname}.png', bbox_inches="tight", dpi=300)
-        plt.savefig(f'{fname}.pdf', bbox_inches="tight", dpi=300)
-        plt.close(fig)
- 
+        kept_global_indices = finite_indices[surviving_idx]
+        keep_full = np.zeros(len(x_all), dtype=bool)
+        keep_full[kept_global_indices] = True
+    
         return {
-            'N_total':    int(x_all.size),
-            'N_kept':     int(x_keep.size),
-            'N_outliers': int(x_out.size),
-            'mean':       round(float(mu), 6),
-            'std':        round(float(sigma), 6),
-            'median':     round(float(np.median(x_keep)), 6),
-            'q1':         round(float(q1), 6),
-            'q3':         round(float(q3), 6),
+            'keep_mask': keep_full,
+            'below_floor': below_floor_flag,
+            'n_passes_run': pass_num,
         }
 ######################################################
     def _append_stats_rows(self, rows):
     
-        path = 'dipole_stats.csv'
+        path = './Results/dipole_stats.csv'
         df_new = pd.DataFrame(rows)
         file_exists = os.path.exists(path)
         df_new.to_csv(
@@ -295,6 +284,55 @@ class Simulations_Analysis(object):
             header=not file_exists,
             index=False,
         )
+######################################################
+    def _plot_distribution(self, x_kept, x_outliers, T, p, bin_width=0.25, x_ceil=10.0):
+        if x_kept.size < 2:
+            print(f"Warning: <2 kept values at T={T}K, p={p}Bar — cannot plot")
+            return
+    
+        mu    = x_kept.mean()
+        sigma = x_kept.std(ddof=1)
+    
+        xmin = 0.0
+        x_all_visible = np.concatenate([x_kept, x_outliers])
+        x_within_ceil = x_all_visible[x_all_visible <= x_ceil]
+        if x_within_ceil.size > 0:
+            xmax = np.ceil(x_within_ceil.max() / bin_width) * bin_width
+        else:
+            xmax = x_ceil
+        xmax = min(xmax, x_ceil)
+    
+        bin_edges = np.arange(xmin, xmax + bin_width, bin_width)
+        bw = bin_edges[1] - bin_edges[0]
+    
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.hist(x_kept, bins=bin_edges, alpha=0.9, color='purple', label="Data")
+        if x_outliers.size:
+            x_out_visible = x_outliers[(x_outliers >= xmin) & (x_outliers <= xmax)]
+            if x_out_visible.size:
+                ax.hist(x_out_visible, bins=bin_edges, alpha=0.9,
+                        color='orange', label="Outliers")
+    
+        x_line = np.linspace(xmin - bin_width, xmax + bin_width, 400)
+        y_line = self._normal_pdf(x_line, mu, sigma) * x_kept.size * bw
+        ax.plot(x_line, y_line, color='#008080', linewidth=2, label="Gaussian fit")
+    
+        ax.set_xlim(xmin, xmax)
+        raw_spacing = (xmax - xmin) / 8
+        tick_spacing = max(round(raw_spacing * 2) / 2, 0.5)
+        ax.set_xticks(np.arange(xmin, xmax + tick_spacing, tick_spacing))
+    
+        ax.set_xlabel(r'$\mu_{liquid}$ / D', fontsize=16)
+        ax.set_ylabel('Frequency', fontsize=16)
+        ax.set_title(f'T = {T} K, p = {p} Bar', fontsize=14)
+        ax.legend(frameon=False, fontsize=12)
+        ax.tick_params(axis='both', which='major', labelsize=12)
+    
+        plt.tight_layout()
+        fname = f'dipole_distribution_T{T}K_p{p}Bar'
+        plt.savefig(f'./Results/{fname}.png', bbox_inches="tight", dpi=300)
+        plt.savefig(f'./Results/{fname}.pdf', bbox_inches="tight", dpi=300)
+        plt.close(fig)
 ######################################################
     def write_filtered_per_leaf(self, dipole_results, keep_masks):
         cols_to_blank = ['muL_SCEE', 'delta_mu', 'mu_liquid',
@@ -338,7 +376,9 @@ class Simulations_Analysis(object):
         
         return x.std(ddof=ddof) / np.sqrt(x.size)
 ######################################################
-    def build_collection(self, dipole_results,leaf_summary,keep_masks,settings, mu_Vacuum, PCM1, PCM2, dipole_model,gas_potential):
+    def build_collection(self, dipole_results, leaf_summary,
+                         keep_masks, filter_results, settings,
+                         mu_Vacuum, dipole_model, PCM1, PCM2):
 
         n_exp_sq = settings.molecule.refractive_index ** 2
         qr1 = settings.advanced.charge_scaling.qr1
@@ -353,7 +393,9 @@ class Simulations_Analysis(object):
             df_pool = dipole_results[
                 (dipole_results['T'] == T) & (dipole_results['p'] == p)
             ].reset_index(drop=True)
-            
+            filter_info = filter_results[(T, p)]
+            below_floor = filter_info['below_floor']
+            n_passes_run = filter_info['n_passes_run']
             keep_mask = keep_masks.get((T, p))
             if keep_mask is None:
                 print(f"Warning: no keep_mask for T={T}K p={p}Bar, skipping")
@@ -427,6 +469,7 @@ class Simulations_Analysis(object):
                     'replica': replica,
                     'T': T,
                     'p': p,
+                    'below_floor': below_floor,
                     'N_configs_total': n_configs_total_r,
                     'N_configs_kept': n_kept_replica,
                     'mean_muL_SCEE': mean_muL_SCEE_r,
@@ -494,6 +537,10 @@ class Simulations_Analysis(object):
                 'T': T,
                 'p': p,
                 'N_replicas': n_replicas_actual,
+                'below_floor': below_floor,
+                'N_passes_run': n_passes_run,
+                'iqr_k': settings.advanced.filtering.iqr_k,
+                'max_iqr_passes': settings.advanced.filtering.max_iqr_passes,
                 'Number of Configurations': n_configs_total,
                 'Number of Configurations Filtered': n_kept_total,
                 

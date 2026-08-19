@@ -32,7 +32,7 @@ def dir_System(System_Title):
 ################################################################################
 def save_settings_snapshot(settings, source_path):
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    dest = f'settings_{settings.molecule.system_title}_{timestamp}.yml'
+    dest = f'./Results/settings_{settings.molecule.system_title}_{timestamp}.yml'
     shutil.copy(source_path, dest)
     print(f'Settings snapshot saved as {dest}')
 ################################################################################
@@ -162,38 +162,42 @@ dipole_results = pd.concat(all_dipole_dfs, ignore_index=True)
 leaf_summary = pd.DataFrame(leaf_summary_rows)    
 
 print(f'Filtering and plotting per-(T,p) distributions for {settings.molecule.system_title}')
-IQR_K = 2.0
 
 # Delete dipole_stats.csv so we start fresh on each run
-if os.path.exists('dipole_stats.csv'):
-    os.remove('dipole_stats.csv')
+if os.path.exists('./Results/Dipole_Stats.csv'):
+    os.remove('./Results/Dipole_Stats.csv')
 
-keep_masks = {}  # (T, p) -> bool array into the pool at that (T,p)
+filter_results = {}
 for T, p in itertools.product(settings.state.temperatures, settings.state.pressures):
     df_pool = dipole_results[
         (dipole_results['T'] == T) & (dipole_results['p'] == p)
     ].reset_index(drop=True)
-    keep_masks[(T, p)] = Analysis.plot_state_point(
-        df_pool, T, p, mu_Vacuum=mu_Vacuum, k=IQR_K,
+    filter_results[(T, p)] = Analysis.plot_state_point(
+        df_pool, T, p, mu_Vacuum=mu_Vacuum,
+        k=settings.advanced.filtering.iqr_k,
+        max_iqr_passes=settings.advanced.filtering.max_iqr_passes,
+        min_pass_outliers=settings.advanced.filtering.min_pass_outliers,
+        min_kept_configs=settings.advanced.filtering.min_kept_configs,
     )
 
-# Write per-leaf Dipole_Calculations_filtered.csv files using pooled keep decisions
+keep_masks = {tp: r['keep_mask'] for tp, r in filter_results.items()}
+
 Analysis.write_filtered_per_leaf(dipole_results, keep_masks)
 
 per_replica_df, system_df = Analysis.build_collection(
     dipole_results=dipole_results,
     leaf_summary=leaf_summary,
     keep_masks=keep_masks,
+    filter_results=filter_results,
     settings=settings,
     mu_Vacuum=mu_Vacuum,
+    dipole_model=dipole_model,
     PCM1=PCM1,
     PCM2=PCM2,
-    dipole_model=dipole_model,
-    gas_potential=gas_potential,
 )
 
-per_replica_df.to_csv('Per_Replica.csv', index=False)
-system_df.to_csv('Results.csv', index=False)
+per_replica_df.to_csv('./Results/Per_Replica.csv', index=False)
+system_df.to_csv('./Results/Results.csv', index=False)
 print(f'Per-replica data saved in Per_Replica.csv')
 print(f'System data saved in Results.csv')
                 

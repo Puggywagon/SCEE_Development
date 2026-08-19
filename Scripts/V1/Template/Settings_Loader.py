@@ -93,7 +93,13 @@ class ElectronicStructureLevel:
 class ElectronicStructure:
     v0: ElectronicStructureLevel   # low-level optimisation
     v1: ElectronicStructureLevel   # high-level single point
- 
+
+@dataclass
+class Filtering:
+    iqr_k: float                 # IQR multiplier
+    max_iqr_passes: int          # hard cap on how many IQR passes
+    min_pass_outliers: int       # early termination: stop if a pass finds fewer than this
+    min_kept_configs: int        # convergence floor
  
 @dataclass
 class AdvancedSettings:
@@ -101,8 +107,8 @@ class AdvancedSettings:
     sampling: Sampling
     charge_scaling: ChargeScaling
     electronic_structure: ElectronicStructure
- 
- 
+    filtering: Filtering
+
 @dataclass
 class Settings:
     state: StateConditions
@@ -217,6 +223,12 @@ def load_settings(path: str = "Settings.yml") -> Settings:
                 method=adv["electronic_structure"]["v1"]["method"],
                 basis=adv["electronic_structure"]["v1"]["basis"],
             ),
+        ),
+        filtering=Filtering(
+            iqr_k=float(adv["filtering"]["iqr_k"]),
+            max_iqr_passes=int(adv["filtering"]["max_iqr_passes"]),
+            min_pass_outliers=int(adv["filtering"]["min_pass_outliers"]),
+            min_kept_configs=int(adv["filtering"]["min_kept_configs"]),
         ),
     )
  

@@ -145,14 +145,58 @@ class Simulations_Analysis(object):
 ######################################################
     def _normal_pdf(self,x, mu, sigma):
         return (1.0 / (sigma * np.sqrt(2.0 * np.pi))) * np.exp(-0.5 * ((x - mu) / sigma) ** 2)
+        
 ######################################################
-    def plot_state_point(self, df_pool, T, p, mu_Vacuum,
-                     k, max_iqr_passes, min_pass_outliers, min_kept_configs,
-                     bin_width=0.25, x_ceil=10.0):
-    
-        x_all = df_pool['mu_liquid'].astype(float).to_numpy()
-        finite_mask = np.isfinite(x_all)
-    
+    def _build_pass_row(self, mu_liq, mu_scee, mu_delta, **base_fields):
+        """Build a Dipole_Stats row with metrics grouped across the three quantities.
+        
+        Returns a dict laid out as: base fields, then mean/std/median/q1/q3 each
+        with three columns (muL_SCEE, delta_mu, mu_liquid).
+        """
+        def _safe_stat(x, fn, *args, **kwargs):
+            if x.size == 0:
+                return np.nan
+            if fn is np.std and x.size < 2:
+                return np.nan
+            return float(fn(x, *args, **kwargs))
+        
+        return {
+            **base_fields,
+            
+            'mean_muL_SCEE':    _safe_stat(mu_scee,  np.mean),
+            'mean_delta_mu':    _safe_stat(mu_delta, np.mean),
+            'mean_mu_liquid':   _safe_stat(mu_liq,   np.mean),
+            
+            'std_muL_SCEE':     _safe_stat(mu_scee,  np.std, ddof=1),
+            'std_delta_mu':     _safe_stat(mu_delta, np.std, ddof=1),
+            'std_mu_liquid':    _safe_stat(mu_liq,   np.std, ddof=1),
+            
+            'median_muL_SCEE':  _safe_stat(mu_scee,  np.median),
+            'median_delta_mu':  _safe_stat(mu_delta, np.median),
+            'median_mu_liquid': _safe_stat(mu_liq,   np.median),
+            
+            'q1_muL_SCEE':      _safe_stat(mu_scee,  np.percentile, 25),
+            'q1_delta_mu':      _safe_stat(mu_delta, np.percentile, 25),
+            'q1_mu_liquid':     _safe_stat(mu_liq,   np.percentile, 25),
+            
+            'q3_muL_SCEE':      _safe_stat(mu_scee,  np.percentile, 75),
+            'q3_delta_mu':      _safe_stat(mu_delta, np.percentile, 75),
+            'q3_mu_liquid':     _safe_stat(mu_liq,   np.percentile, 75),
+        }
+######################################################
+    def plot_state_point(self, df_pool, T, p, mu_Vacuum, mu_filter_threshold,
+                         k, max_iqr_passes, min_pass_outliers, min_kept_configs,
+                         bin_width=0.25, x_ceil=10.0):
+        # Pull all three dipole quantities from the pool
+        mu_liquid_all = df_pool['mu_liquid'].astype(float).to_numpy()
+        muL_SCEE_all  = df_pool['muL_SCEE'].astype(float).to_numpy()
+        delta_mu_all  = df_pool['delta_mu'].astype(float).to_numpy()
+        
+        # Finite across all three (belt-and-braces against any NaN mismatch)
+        finite_mask = (np.isfinite(mu_liquid_all) & 
+                       np.isfinite(muL_SCEE_all) & 
+                       np.isfinite(delta_mu_all))
+        
         if finite_mask.sum() < 5:
             print(f"Warning: <5 finite values at T={T}K, p={p}Bar — skipping")
             return {
@@ -160,118 +204,122 @@ class Simulations_Analysis(object):
                 'below_floor': True,
                 'n_passes_run': 0,
             }
-    
-        x_finite = x_all[finite_mask]
-    
-        # Identify pass-1 outliers (physical + first IQR) so the "raw" row can 
-        # announce what pass 1 will remove
-        keep_iqr1, out_iqr1, _ = self._iqr_masks(x_finite, k=k)
-        out_phys = x_finite < mu_Vacuum
+        
+        # Working arrays restricted to finite configs
+        mu_liq_finite   = mu_liquid_all[finite_mask]
+        mu_scee_finite  = muL_SCEE_all[finite_mask]
+        mu_delta_finite = delta_mu_all[finite_mask]
+        
+        # Identify pass-1 outliers on mu_liquid (the filter-driving quantity)
+        keep_iqr1, out_iqr1, _ = self._iqr_masks(mu_liq_finite, k=k)
+        out_phys = mu_liq_finite < mu_filter_threshold
         out_pass1 = out_iqr1 | out_phys
         
         below_floor_flag = False
         stats_rows = []
-    
-        # --- Row 1: raw baseline ---
-        stats_rows.append({
-            'N_total': int(x_finite.size),
-            'N_outliers': int(out_pass1.sum()),
-            'mean':   float(x_finite.mean()),    
-            'std':    float(x_finite.std(ddof=1)),
-            'median': float(np.median(x_finite)),
-            'q1':     float(np.percentile(x_finite, 25)),
-            'q3':     float(np.percentile(x_finite, 75)),
-            'T': T, 'p': p, 'pass': 'raw',
-            'N_outliers_phys': int(out_phys.sum()),
-            'N_outliers_stat': int(out_iqr1.sum()),
-            'mu_Vacuum_threshold': mu_Vacuum,
-            'below_floor': False,
-        })
-    
-        # --- Apply pass 1 ---
-        surviving_idx = np.where(~out_pass1)[0]   # indices into x_finite
-        x_current = x_finite[surviving_idx]
         
-        if x_current.size < min_kept_configs:
-            print(f"WARNING: T={T}K p={p}Bar: after pass 1, {x_current.size} configs "
+        # ----- Row 1: raw baseline (all finite, before any pass applied) -----
+        stats_rows.append(self._build_pass_row(
+            mu_liq=mu_liq_finite,
+            mu_scee=mu_scee_finite,
+            mu_delta=mu_delta_finite,
+            N_total=int(mu_liq_finite.size),
+            N_outliers=int(out_pass1.sum()),
+            T=T, p=p, **{'pass': 'raw'},
+            N_outliers_phys=int(out_phys.sum()),
+            N_outliers_stat=int(out_iqr1.sum()),
+            mu_filter_threshold=mu_filter_threshold,
+            mu_Vacuum_force_field=mu_Vacuum,
+            below_floor=False,
+        ))
+        
+        # ----- Apply pass 1 -----
+        surviving_idx = np.where(~out_pass1)[0]
+        mu_liq_current   = mu_liq_finite[surviving_idx]
+        mu_scee_current  = mu_scee_finite[surviving_idx]
+        mu_delta_current = mu_delta_finite[surviving_idx]
+        
+        if mu_liq_current.size < min_kept_configs:
+            print(f"WARNING: T={T}K p={p}Bar: after pass 1, {mu_liq_current.size} configs "
                   f"remain — below floor of {min_kept_configs}.")
             below_floor_flag = True
-    
-        # --- Iterative IQR passes ---
-        pass_num = 1   # pass 1 already done
-        while pass_num < max_iqr_passes and x_current.size >= 5:
-            keep_next, out_next, _ = self._iqr_masks(x_current, k=k)
+        
+        # ----- Iterative IQR passes -----
+        pass_num = 1
+        while pass_num < max_iqr_passes and mu_liq_current.size >= 5:
+            keep_next, out_next, _ = self._iqr_masks(mu_liq_current, k=k)
             n_removed = int(out_next.sum())
-        
+            
             # Record this pass's "going in" stats with the outliers IT identifies
-            stats_rows.append({
-                'N_total': int(x_current.size),
-                'N_outliers': n_removed,
-                'mean':   float(x_current.mean()),
-                'std':    float(x_current.std(ddof=1)) if x_current.size > 1 else np.nan,
-                'median': float(np.median(x_current)),
-                'q1':     float(np.percentile(x_current, 25)),
-                'q3':     float(np.percentile(x_current, 75)),
-                'T': T, 'p': p, 'pass': f'pass{pass_num}',
-                'N_outliers_phys': 0,
-                'N_outliers_stat': n_removed,
-                'mu_Vacuum_threshold': mu_Vacuum,
-                'below_floor': below_floor_flag,
-            })
-        
-            # Early termination: this pass found too few to be worth pursuing
+            stats_rows.append(self._build_pass_row(
+                mu_liq=mu_liq_current,
+                mu_scee=mu_scee_current,
+                mu_delta=mu_delta_current,
+                N_total=int(mu_liq_current.size),
+                N_outliers=n_removed,
+                T=T, p=p, **{'pass': f'pass{pass_num}'},
+                N_outliers_phys=0,
+                N_outliers_stat=n_removed,
+                mu_filter_threshold=mu_filter_threshold,
+                mu_Vacuum_force_field=mu_Vacuum,
+                below_floor=below_floor_flag,
+            ))
+            
+            # Early termination if pass found too few outliers
             if n_removed < min_pass_outliers:
                 break
             
-            # Floor check: don't apply this pass if it would breach the floor
-            if x_current.size - n_removed < min_kept_configs:
+            # Floor check before applying
+            if mu_liq_current.size - n_removed < min_kept_configs:
                 print(f"WARNING: T={T}K p={p}Bar: pass {pass_num+1} would remove "
                       f"{n_removed} configs, breaching floor of {min_kept_configs}. "
                       f"Not applying.")
                 below_floor_flag = True
                 break
-        
+            
             # Apply this pass
             surviving_idx = surviving_idx[keep_next]
-            x_current = x_finite[surviving_idx]
+            mu_liq_current   = mu_liq_finite[surviving_idx]
+            mu_scee_current  = mu_scee_finite[surviving_idx]
+            mu_delta_current = mu_delta_finite[surviving_idx]
             pass_num += 1
-    
-        # --- Final 'filtered' row: after all applied passes ---
-        stats_rows.append({
-            'N_total': int(x_current.size),
-            'N_outliers': 0,
-            'mean':   float(x_current.mean()) if x_current.size else np.nan,
-            'std':    float(x_current.std(ddof=1)) if x_current.size > 1 else np.nan,
-            'median': float(np.median(x_current)) if x_current.size else np.nan,
-            'q1':     float(np.percentile(x_current, 25)) if x_current.size else np.nan,
-            'q3':     float(np.percentile(x_current, 75)) if x_current.size else np.nan,
-            'T': T, 'p': p, 'pass': 'filtered',
-            'N_outliers_phys': 0,
-            'N_outliers_stat': 0,
-            'mu_Vacuum_threshold': mu_Vacuum,
-            'below_floor': below_floor_flag,
-        })
-    
+        
+        # ----- Final 'filtered' row: after all applied passes -----
+        stats_rows.append(self._build_pass_row(
+            mu_liq=mu_liq_current,
+            mu_scee=mu_scee_current,
+            mu_delta=mu_delta_current,
+            N_total=int(mu_liq_current.size),
+            N_outliers=0,
+            T=T, p=p, **{'pass': 'filtered'},
+            N_outliers_phys=0,
+            N_outliers_stat=0,
+            mu_filter_threshold=mu_filter_threshold,
+            mu_Vacuum_force_field=mu_Vacuum,
+            below_floor=below_floor_flag,
+        ))
+        
         self._append_stats_rows(stats_rows)
-    
-        # --- Single distribution plot: kept (purple) vs all removed (orange) ---
-        all_removed_mask = np.ones(x_finite.size, dtype=bool)
+        
+        # ----- Single distribution plot: kept (purple) vs all removed (orange) -----
+        all_removed_mask = np.ones(mu_liq_finite.size, dtype=bool)
         all_removed_mask[surviving_idx] = False
-        x_outliers = x_finite[all_removed_mask]
-        self._plot_distribution(x_current, x_outliers, T=T, p=p,
+        mu_liq_outliers = mu_liq_finite[all_removed_mask]
+        self._plot_distribution(mu_liq_current, mu_liq_outliers, T=T, p=p,
                                 bin_width=bin_width, x_ceil=x_ceil)
         
-        # --- Build keep_full mask over x_all ---
+        # ----- Build keep_full mask over the original df_pool indices -----
         finite_indices = np.where(finite_mask)[0]
         kept_global_indices = finite_indices[surviving_idx]
-        keep_full = np.zeros(len(x_all), dtype=bool)
+        keep_full = np.zeros(len(mu_liquid_all), dtype=bool)
         keep_full[kept_global_indices] = True
-    
+        
         return {
             'keep_mask': keep_full,
             'below_floor': below_floor_flag,
             'n_passes_run': pass_num,
         }
+
 ######################################################
     def _append_stats_rows(self, rows):
     
@@ -558,7 +606,8 @@ class Simulations_Analysis(object):
                 'Scaled Charge 3': system_num3,
 
                 'Vacuum Dipole Moment Model': dipole_model,
-                'mu_Vacuum': mu_Vacuum,
+                'mu_filter_threshold': settings.molecule.gas_dipole,
+                'mu_Vacuum_force_field': mu_Vacuum,
                 'PCM1': PCM1,
                 'PCM2': PCM2,
                 'cal_diconst': settings.molecule.calculated_dielectric,
