@@ -56,6 +56,15 @@ filtering — exists to produce that table reliably and automatically for a list
 
 ## 2. Workflow at a glance
 
+![[SCEE_workflow_draft.svg]]
+
+The figure above is the full picture: inputs, the script that owns each stage, the function called, what it
+does, and what it produces. Drop the `.svg` anywhere in the vault and the embed resolves by name. To scale
+it down on the page, use `![[SCEE_workflow_draft.svg|1000]]`.
+
+The Mermaid diagrams below are the same pipeline at lower resolution — useful for reading on a phone or
+pasting into a message.
+
 ### Top-level flow
 
 ```mermaid
