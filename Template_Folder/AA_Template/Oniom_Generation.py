@@ -92,7 +92,7 @@ class Oniom_Generation(object):
             if Gro_Atom_Types == 'OW':
                 Sigma_List.append(record['sigma'] * 10)
                 Epsilon_List.append(record['epsilon'])
-            elif Gro_Atom_Types in ('HO', 'HN', 'HW') and record['sigma']==0 and record['epsilon']==0:
+            elif Gro_Atom_Types in ('HO', 'HN', 'HW'):
                 Sigma_List.append(0.2673)
                 Epsilon_List.append(0.0418)
             else:
@@ -193,7 +193,7 @@ class Oniom_Generation(object):
             if Gro_Atom_Types == 'OW':
                 Sigma_List.append(record['sigma'] * 10)
                 Epsilon_List.append(record['epsilon'])
-            elif Gro_Atom_Types in ('HO', 'HN', 'HW') and record['sigma']==0 and record['epsilon']==0:
+            elif Gro_Atom_Types in ('HO', 'HN', 'HW'):
                 Sigma_List.append(0.2673)
                 Epsilon_List.append(0.0418)
             else:

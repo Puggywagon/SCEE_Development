@@ -96,8 +96,8 @@ if settings.build_solvent_gro:
     if not settings.molecule.aa_surround:
         Gro_Builder.UA_Solvent(settings.molecule.solvent_smiles)
 confirm_structure()
-MD.run_md1(settings, role='pure')
-MD.run_md2(settings, role='pure')        
+#MD.run_md1(settings, role='pure')
+#MD.run_md2(settings, role='pure')        
 ######################################################################################################
 #Making oniom here now
 Oniom = 'oniom.inp'
@@ -129,10 +129,10 @@ leaf_summary_rows = []
 for replica, T, p in itertools.product(replicas, settings.state.temperatures, settings.state.pressures):
     leaf = f'Simulations/replica_{replica}/{T:g}K/{p:g}Bar'
     with cd(leaf):
-        MD.run_md3(settings, role='pure', HOMEDIR=HOMEDIR, T=T, p=p)
+        #MD.run_md3(settings, role='pure', HOMEDIR=HOMEDIR, T=T, p=p)
         #Gaussian processing on the 200 configurations
-        Gauss.process_gro(oniom_inp_path=f'{HOMEDIR}/oniom.inp')
-        Gauss.init3()
+        #Gauss.process_gro(oniom_inp_path=f'{HOMEDIR}/oniom.inp')
+        #Gauss.init3()
         scee_df = Gauss.init4()
         
         dipole_df = Analysis.process_dipole(scee_df, mu_Vacuum, PCM1, PCM2, settings)
@@ -174,7 +174,7 @@ for T, p in itertools.product(settings.state.temperatures, settings.state.pressu
     ].reset_index(drop=True)
     filter_results[(T, p)] = Analysis.plot_state_point(
         df_pool, T, p, mu_Vacuum=mu_Vacuum,    
-        mu_filter_threshold=settings.molecule.gas_dipole, 
+        mu_filter_threshold=settings.molecule.dipole_moment_gas, 
         k=settings.advanced.filtering.iqr_k,
         max_iqr_passes=settings.advanced.filtering.max_iqr_passes,
         min_pass_outliers=settings.advanced.filtering.min_pass_outliers,

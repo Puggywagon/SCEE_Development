@@ -5,9 +5,10 @@
 #include "Solvent.itp"
 #include "Solvent_UA.itp"
 
+[ system ]
+; Name
+Ethanol
 
-[system]
-Propylamine
-
-[molecules]
-Solvent 1
+[ molecules ]
+; Compound        #mols
+Solvent           1
