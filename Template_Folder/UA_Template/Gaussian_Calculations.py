@@ -313,7 +313,7 @@ class Gaussian_Calculations(object):
         f.write(text)
         f.close()
         run_str='Vacuum'
-        #self.run_gaussian(rundir,run_str,step=0)
+        self.run_gaussian(rundir,run_str,step=0)
         
         mu_Vacuum = self.get_single_dipole(rundir, 'Vacuum')
         pd.DataFrame({'Vacuum': [mu_Vacuum]}).to_csv('Dipole_Vacuum.csv', index=False)
@@ -359,7 +359,7 @@ class Gaussian_Calculations(object):
         f.close()
                 
         run_str='PCM1'
-        #self.run_gaussian(rundir,run_str,step=0)
+        self.run_gaussian(rundir,run_str,step=0)
         PCM1 = self.get_single_dipole(rundir, 'PCM1')
         pd.DataFrame({'PCM1': [PCM1]}).to_csv('Dipole_PCM1.csv', index=False)
         return PCM1
@@ -404,7 +404,7 @@ class Gaussian_Calculations(object):
         f.close()
                 
         run_str='PCM2'
-        #self.run_gaussian(rundir,run_str,step=0)
+        self.run_gaussian(rundir,run_str,step=0)
 
         PCM2 = self.get_single_dipole(rundir, 'PCM2')
         pd.DataFrame({'PCM2': [PCM2]}).to_csv('Dipole_PCM2.csv', index=False)
@@ -502,7 +502,7 @@ class Gaussian_Calculations(object):
             f.close()
                 
         run_str='*_c*_q?'
-        #self.run_gaussian(rundir,run_str,step=1)
+        self.run_gaussian(rundir,run_str,step=1)
         scee_df = self.get_multipole_statistics_scee(rundir)
         print(scee_df.describe())
         print(scee_df.head())
