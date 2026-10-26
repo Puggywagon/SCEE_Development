@@ -272,9 +272,10 @@ class Gaussian_Calculations(object):
         text += f'%nprocshared={self.nproc}\n'
         text += f'%mem={self.mem}\n'
         text += f'#p {self.method_v0}/{self.basis_v0} gfprint{opt}{scrf}\n'
-        text += '# nosymm pop=full scf=(verytight) density=current\n'
+        text += '# nosymm scf=(verytight) density=current\n'
         text += '# integral=(ultrafine,NoXCTest)\n\n'
-        text += f'{kind} {sol_keyword}\n\n'
+        step1 = 'optimisation' if kind == 'Vacuum' else 'v0_calc'
+        text += f'{kind}_{step1} {chk_name}\n\n'
         text += '0 1\n'
         for dat_atom, dat_x, dat_y, dat_z in zip(dat_atoms, dat_xs, dat_ys, dat_zs):
             text += f'{dat_atom:s} {dat_x:9.4f} {dat_y:8.4f} {dat_z:8.4f}\n'
@@ -289,7 +290,7 @@ class Gaussian_Calculations(object):
         text += f'#p {self.method_v1}/{self.basis_v1} gfprint{scrf}\n'
         text += '# nosymm pop=full scf=(verytight) density=current\n'
         text += '# integral=(ultrafine,NoXCTest) geom=checkpoint\n\n'
-        text += f'{kind} {sol_keyword}\n\n'
+        text += f'{kind}_dipole_calc {chk_name}\n\n'
         text += '0 1\n\n'
         text += eps_line
         text += '\n\n'
@@ -378,9 +379,9 @@ class Gaussian_Calculations(object):
         text += f'%mem={self.mem}\n'
         text += f'#p oniom({self.method_v0}/{self.basis_v0}:amber=(print,SoftFirst,LastEquiv))=embedcharge gfprint' + '\n'
         text += '# opt=quadmacro iop(1/98=66,1/19=7)\n'
-        text += '# nosymm pop=full scf=(verytight) density=current\n'
+        text += '# nosymm scf=(verytight) density=current\n'
         text += '# integral=(ultrafine,NoXCTest) geom=connectivity\n\n'
-        text += 'qteste\n\n'
+        text += 'SCEE_optimisation\n\n'
         text += '0 1 0 1 0 1\n'
 
         if (not os.path.isdir(rundir)):
@@ -417,7 +418,7 @@ class Gaussian_Calculations(object):
         text += f'#p {self.method_v1}/{self.basis_v1} gfprint charge' + '\n'
         text += '# nosymm pop=full scf=(verytight) density=current' + '\n'
         text += '# integral=(ultrafine,NoXCTest)\n\n'
-        text += 'teste\n\n'
+        text += 'SCEE_dipole_calc\n\n'
         text += '0 1\n'
         
         re_str = 'Z-Matrix orientation:(?:.*\n){' + str(5+self.natom) + '}'

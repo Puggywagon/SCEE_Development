@@ -8,6 +8,11 @@ import pandas as pd
 import pyedr
 import glob
 import itertools
+
+# gmx dipoles/energy write the same .xvg files on every run, and GROMACS keeps
+# numbered backups (#Mtot.xvg.1# ...) until it refuses after 99. These outputs
+# are regenerated each time, so overwrite instead of backing up.
+os.environ.setdefault('GMX_MAXBACKUP', '-1')
 ################################################################################
 class Simulations_Analysis(object):
     # Single definition so the file Run_SCEE deletes is the one we append to
@@ -77,8 +82,20 @@ class Simulations_Analysis(object):
             raise RuntimeError("Could not find 'Average' dipole line in gmx dipoles output")
         return dipole_model
 ######################################################
-    def get_dipole_model_liquid(self): 
-    
+    # Results of gmx dipoles per replica folder, so the trajectory is only
+    # read once per replica even though two steps need the values
+    _liquid_dipole_cache = {}
+
+    def get_dipole_model_liquid(self):
+        key = os.getcwd()
+        if key in Simulations_Analysis._liquid_dipole_cache:
+            return Simulations_Analysis._liquid_dipole_cache[key]
+        result = self._run_dipoles_liquid()
+        Simulations_Analysis._liquid_dipole_cache[key] = result
+        return result
+
+    def _run_dipoles_liquid(self):
+
         gromacs.environment.flags['capture_output'] = True
         input_str = '0\n'
         run = self.md3_prefix()

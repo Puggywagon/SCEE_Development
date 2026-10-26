@@ -37,11 +37,11 @@ class Oniom_Generation(object):
     def QM_Inputs(self,settings, role, Oniom):
         # Will need to add something that identifies what molecule is what?
         if role == 'pure':
-            atoms_itp = 'Solvent.itp'
-            topology = 'Pure.top'
+            atoms_itp = settings.files.solvent_itp
+            topology = settings.files.pure_topology
         elif role == 'mixture':
-            atoms_itp = 'Solute.itp'
-            topology = 'Mixture.top'
+            atoms_itp = settings.files.solute_itp
+            topology = settings.files.mixture_topology
         else:
             raise ValueError(f"role must be 'pure' or 'mixture', got {role!r}")
     
@@ -137,15 +137,15 @@ class Oniom_Generation(object):
     def MM_Inputs(self, settings, Oniom):
         # MM region — bath solvent. Source itp depends on aa_surround.
         if settings.molecule.aa_surround:
-            atoms_itp = 'Solvent.itp'
+            atoms_itp = settings.files.solvent_itp
         else:
-            atoms_itp = 'Solvent_UA.itp'
+            atoms_itp = settings.files.solvent_ua_itp
     
         # Topology for atomtype lookup — same one used for the run
         if settings.is_mixture:
-            topology = 'Mixture.top'
+            topology = settings.files.mixture_topology
         else:
-            topology = 'Pure.top'
+            topology = settings.files.pure_topology
     
         atom_dict = self.get_atoms_from_file(atoms_itp)
         atoms = pd.DataFrame(atom_dict)

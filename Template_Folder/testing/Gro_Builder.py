@@ -14,14 +14,23 @@ class Gro_Builder(object):
         pass
 ################################################################################  
 ################################################################################
-    def AA_Solvent(self, smiles):
-        self._build_aa_gro(smiles, 'Solvent', 'Solv')
+    def AA_Solvent(self, smiles, gro_name='Solvent.gro'):
+        self._build_aa_gro(smiles, gro_name[:-4] if gro_name.endswith('.gro') else gro_name, 'Solv')
 ################################################################################
-    def AA_Solute(self, smiles):
-        self._build_aa_gro(smiles, 'Solute', 'Solu')
+    def AA_Solute(self, smiles, gro_name='Solute.gro'):
+        self._build_aa_gro(smiles, gro_name[:-4] if gro_name.endswith('.gro') else gro_name, 'Solu')
 ################################################################################      
-    def UA_Solvent(self, smiles):
-        self._build_ua_gro(smiles, 'Solvent_UA', 'Solv')    
+    def UA_Solvent(self, smiles, gro_name='Solvent_UA.gro'):
+        self._build_ua_gro(smiles, gro_name[:-4] if gro_name.endswith('.gro') else gro_name, 'Solv')
+################################################################################
+    @staticmethod
+    def _write_xyz(path, symbols, coords_ang, comment):
+        """Write a plain .xyz file (Angstrom) in the same atom order as the
+        .gro, so the numbering can be checked in any molecular viewer."""
+        with open(path, 'w') as f:
+            f.write(f"{len(symbols)}\n{comment}\n")
+            for sym, (x, y, z) in zip(symbols, coords_ang):
+                f.write(f"{sym:2s} {x:12.6f} {y:12.6f} {z:12.6f}\n")
 ################################################################################    
     def _build_aa_gro(self, smiles, molecule, resname):
         mol = Chem.MolFromSmiles(smiles)
@@ -51,6 +60,13 @@ class Gro_Builder(object):
                 f.write(f"{1:5d}{resname:5s}{symbol:5s}{i+1:5d}{pos.x:8.3f}{pos.y:8.3f}{pos.z:8.3f}\n")
             box_size = 0.0
             f.write(f"{box_size:10.5f}{box_size:10.5f}{box_size:10.5f}")
+
+        conf = mol.GetConformer()
+        symbols = [a.GetSymbol() for a in mol.GetAtoms()]
+        coords = [tuple(conf.GetAtomPosition(i)) for i in range(mol.GetNumAtoms())]
+        self._write_xyz(f"{molecule}.xyz", symbols, coords,
+                        f"{molecule} from SMILES {smiles}; same atom order as {molecule}.gro")
+        print(f"Gro_Builder built {molecule}.gro and {molecule}.xyz (AA)")
 
 
 ################################################################################  
@@ -102,6 +118,10 @@ class Gro_Builder(object):
                     f"{pos.x:8.3f}{pos.y:8.3f}{pos.z:8.3f}\n"
                 )
             f.write(f"{0.0:10.5f}{0.0:10.5f}{0.0:10.5f}")
-        print(f"Gro_Builder built {molecule}.gro (UA)")
+        symbols = [name for _, name in ordered]
+        coords = [tuple(conformer.GetAtomPosition(idx)) for idx, _ in ordered]
+        self._write_xyz(f"{molecule}.xyz", symbols, coords,
+                        f"{molecule} (united-atom: aliphatic H merged into carbons) from SMILES {smiles}; same order as {molecule}.gro")
+        print(f"Gro_Builder built {molecule}.gro and {molecule}.xyz (UA)")
 ################################################################################    
 ################################################################################    

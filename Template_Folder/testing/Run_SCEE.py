@@ -100,10 +100,28 @@ MD.pin = settings.software.gromacs.pin
 MD.pinoffset = settings.software.gromacs.pinoffset
 
 if RUN_BUILD and settings.build_solvent_gro:
-    Gro_Builder.AA_Solvent(settings.molecule.solvent_smiles)
+    Gro_Builder.AA_Solvent(settings.molecule.solvent_smiles, settings.files.solvent_gro)
     if not settings.molecule.aa_surround:
-        Gro_Builder.UA_Solvent(settings.molecule.solvent_smiles)
+        Gro_Builder.UA_Solvent(settings.molecule.solvent_smiles, settings.files.solvent_ua_gro)
     confirm_structure()
+
+# Stop early if any required input file is missing, rather than partway through
+# The central (QM) molecule is always all-atom; a UA bath needs its own files as well
+required = [settings.files.pure_topology, settings.files.solvent_itp]
+if not settings.molecule.aa_surround:
+    required += [settings.files.solvent_ua_itp]
+if RUN_MD_SETUP:
+    required += [settings.files.solvent_gro,
+                 settings.files.mdp_vacuum_em, settings.files.mdp_vacuum_nvt,
+                 settings.files.mdp_box_em, settings.files.mdp_box_nvt, settings.files.mdp_box_npt]
+    if not settings.molecule.aa_surround:
+        required += [settings.files.solvent_ua_gro]
+if RUN_PRODUCTION:
+    required += [settings.files.mdp_production_template]
+missing = [f for f in required if not os.path.exists(f)]
+if missing:
+    raise FileNotFoundError(f'Missing input files in {os.getcwd()}: {missing}. '
+                            f'Check the Input_Files block in Settings.yml.')
 if RUN_MD_SETUP:
     MD.run_md1(settings, role='pure')
     MD.run_md2(settings, role='pure')
@@ -118,7 +136,16 @@ Oniom_Generation.Gen_File(
 )
 Total_Atoms, qmax = Oniom_Generation.QM_Inputs(settings, role='pure', Oniom=Oniom)
 Oniom_Generation.MM_Inputs(settings, Oniom=Oniom)
-Oniom_Generation.Counting_Molecules(Oniom, settings.initial_molecules)
+# Use the number of bath molecules actually in the topology (insert-molecules
+# can place fewer than requested); fall back to the requested number
+n_bath = MD.bath_molecule_count(settings, role='pure') or settings.initial_molecules
+if n_bath != settings.initial_molecules:
+    print(f'Note: topology lists {n_bath} bath molecules (requested {settings.initial_molecules})')
+Oniom_Generation.Counting_Molecules(Oniom, n_bath)
+
+# The cluster must fit in the equilibrated box
+if os.path.exists('npt.gro'):
+    MD.check_box_size(settings, 'npt.gro')
 Gauss.natom = Total_Atoms
 Gauss.qmax = qmax
 
@@ -165,7 +192,7 @@ for replica, T, p in itertools.product(replicas, settings.state.temperatures, se
         sim_density = Analysis.Sim_Density()
         liq_dipole, model_eps = Analysis.get_dipole_model_liquid()
         liq_potential = Analysis.Pot_Liq()
-        enth_of_vap = Analysis.Sim_Enth(gas_potential,liq_potential, T,N=settings.initial_molecules)
+        enth_of_vap = Analysis.Sim_Enth(gas_potential, liq_potential, T, N=n_bath + 1)  # bath + central molecule
         
         
     dipole_df['replica'] = replica
@@ -205,7 +232,7 @@ for T, p in itertools.product(settings.state.temperatures, settings.state.pressu
         max_iqr_passes=settings.advanced.filtering.max_iqr_passes,
         min_pass_outliers=settings.advanced.filtering.min_pass_outliers,
         min_kept_configs=settings.advanced.filtering.min_kept_configs,
-        system_title=settings.molecule.system_title,
+        system_title=settings.molecule.display_name,
     )
 
 keep_masks = {tp: r['keep_mask'] for tp, r in filter_results.items()}

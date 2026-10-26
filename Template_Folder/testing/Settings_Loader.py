@@ -29,11 +29,16 @@ class Molecule:
     solvent_smiles: Optional[str]           # None if user provides solvent .gro
     mixture: bool                           # True if a solute is also present
     solute_smiles: Optional[str]            # None if pure OR if .gro provided
- 
+    display_name: Optional[str] = None      # name used in figure titles
+
     # Derived at load time
     calculated_dielectric: float = field(init=False)
  
     def __post_init__(self):
+        # Figure titles: use Display_Name if given (e.g. for paper figures),
+        # otherwise the system title
+        if not self.display_name:
+            self.display_name = self.system_title
         # Optical (high-frequency) dielectric correction:
         #     eps_calc = eps_exp - n^2 + 1
         # Used in PCM2 calculations.
@@ -114,6 +119,34 @@ class Filtering:
     min_kept_configs: int        # convergence floor
  
 @dataclass
+class InputFiles:
+    # Topologies and structures the user supplies (names as in the system folder)
+    pure_topology: str = 'Pure.top'
+    mixture_topology: str = 'Mixture.top'
+    solvent_gro: str = 'Solvent.gro'
+    solvent_itp: str = 'Solvent.itp'
+    solvent_ua_gro: str = 'Solvent_UA.gro'
+    solvent_ua_itp: str = 'Solvent_UA.itp'
+    solute_gro: str = 'Solute.gro'
+    solute_itp: str = 'Solute.itp'
+    # GROMACS parameter files
+    mdp_vacuum_em: str = 'minim_vacuum.mdp'
+    mdp_vacuum_nvt: str = 'nvt_vacuum.mdp'
+    mdp_box_em: str = 'minim.mdp'
+    mdp_box_nvt: str = 'nvt.mdp'
+    mdp_box_npt: str = 'npt.mdp'
+    mdp_production_template: str = 'template_2.mdp'
+
+
+@dataclass
+class Equilibration:
+    density_check: bool          # check NPT density has converged before production
+    density_tolerance_pct: float # max % difference between the two halves of the last part of NPT
+    extend_ps: float             # how much to extend NPT by if not converged
+    max_extensions: int          # give up (and stop) after this many extensions
+
+
+@dataclass
 class AdvancedSettings:
     configuration: Configuration
     sampling: Sampling
@@ -122,6 +155,7 @@ class AdvancedSettings:
     filtering: Filtering
     gas_sampling: GasSampling
     optimal_dipole: OptimalDipole
+    equilibration: Equilibration
 
 @dataclass
 class RunControl:
@@ -139,6 +173,7 @@ class Settings:
     software: Software
     advanced: AdvancedSettings
     run: RunControl
+    files: InputFiles
  
     # Derived flags
     is_mixture: bool = field(init=False)
@@ -204,6 +239,7 @@ def load_settings(path: str = "Settings.yml") -> Settings:
         solvent_smiles=mi["Solvent_Smiles"],
         mixture=bool(mi["Mixture"]),
         solute_smiles=mi["Solute_Smiles"],
+        display_name=mi.get("Display_Name"),
     )
  
     # --- Software ---
@@ -260,6 +296,12 @@ def load_settings(path: str = "Settings.yml") -> Settings:
             start_ps=float(adv.get("gas_sampling", {}).get("start_ps", 100.0)),
             dt_ps=float(adv.get("gas_sampling", {}).get("dt_ps", 20.0)),
         ),
+        equilibration=Equilibration(
+            density_check=bool(adv.get("equilibration", {}).get("density_check", True)),
+            density_tolerance_pct=float(adv.get("equilibration", {}).get("density_tolerance_pct", 0.5)),
+            extend_ps=float(adv.get("equilibration", {}).get("extend_ps", 500.0)),
+            max_extensions=int(adv.get("equilibration", {}).get("max_extensions", 4)),
+        ),
         optimal_dipole=OptimalDipole(
             polarisation_fraction=float(
                 adv.get("optimal_dipole", {}).get("polarisation_fraction", 0.45)
@@ -282,12 +324,30 @@ def load_settings(path: str = "Settings.yml") -> Settings:
         gas_qm=_flag("Gas_Phase_QM"),
     )
 
+    # --- Input Files (optional; the standard names are used if missing) ---
+    fi = data.get("Input_Files") or {}
+    key_map = {
+        "Pure_Topology": "pure_topology", "Mixture_Topology": "mixture_topology",
+        "Solvent_Gro": "solvent_gro", "Solvent_Itp": "solvent_itp",
+        "Solvent_UA_Gro": "solvent_ua_gro", "Solvent_UA_Itp": "solvent_ua_itp",
+        "Solute_Gro": "solute_gro", "Solute_Itp": "solute_itp",
+        "MDP_Vacuum_EM": "mdp_vacuum_em", "MDP_Vacuum_NVT": "mdp_vacuum_nvt",
+        "MDP_Box_EM": "mdp_box_em", "MDP_Box_NVT": "mdp_box_nvt",
+        "MDP_Box_NPT": "mdp_box_npt", "MDP_Production_Template": "mdp_production_template",
+    }
+    unknown = set(fi) - set(key_map)
+    if unknown:
+        raise ValueError(f"Unknown Input_Files entries: {sorted(unknown)}. "
+                         f"Allowed: {sorted(key_map)}")
+    files = InputFiles(**{key_map[k]: str(v) for k, v in fi.items() if v})
+
     return Settings(
         state=state,
         molecule=molecule,
         software=software,
         advanced=advanced,
         run=run,
+        files=files,
     )
  
 
