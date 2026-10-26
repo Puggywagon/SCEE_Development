@@ -36,13 +36,21 @@ class Simulations_Analysis(object):
 ################################################################################
     @staticmethod
     def leaf_path(replica, T, p):
-        """Leaf folder for a replica/state point. New runs use 298K/1Bar;
-        older runs used 298.0K/1.0Bar. Return whichever already exists
-        (the new form if neither does)."""
+        """Leaf folder for a replica/state point.
+
+        New runs use e.g. 330.15K/1Bar; older runs used 330.15K/1.0Bar.
+        Prefer a folder that actually holds a production run, so an empty
+        folder left behind by a crashed run can't hide the real data.
+        Falls back to the new-style name if neither exists yet.
+        """
         new = f'Simulations/replica_{replica}/{T:g}K/{p:g}Bar'
         old = f'Simulations/replica_{replica}/{float(T)}K/{float(p)}Bar'
-        if not os.path.isdir(new) and os.path.isdir(old):
-            return old
+        for cand in (new, old):
+            if glob.glob(os.path.join(cand, '*_QMMM_md3.tpr')):
+                return cand
+        for cand in (new, old):
+            if os.path.isdir(cand):
+                return cand
         return new
 ################################################################################
     def get_dipole_model(self): 
@@ -220,7 +228,7 @@ class Simulations_Analysis(object):
 ######################################################
     def plot_state_point(self, df_pool, T, p, mu_Vacuum, mu_gas_exp,
                          k, max_iqr_passes, min_pass_outliers, min_kept_configs,
-                         bin_width=0.25, x_ceil=10.0):
+                         bin_width=0.25, x_ceil=10.0, system_title=None):
         # Pull all three dipole quantities from the pool
         mu_liquid_all = df_pool['mu_liquid'].astype(float).to_numpy()
         muL_SCEE_all  = df_pool['muL_SCEE'].astype(float).to_numpy()
@@ -343,7 +351,8 @@ class Simulations_Analysis(object):
         all_removed_mask[surviving_idx] = False
         mu_liq_outliers = mu_liq_finite[all_removed_mask]
         self._plot_distribution(mu_liq_current, mu_liq_outliers, T=T, p=p,
-                                bin_width=bin_width, x_ceil=x_ceil)
+                                bin_width=bin_width, x_ceil=x_ceil,
+                                system_title=system_title, mu_gas=mu_gas_exp)
         
         # ----- Build keep_full mask over the original df_pool indices -----
         finite_indices = np.where(finite_mask)[0]
@@ -370,7 +379,8 @@ class Simulations_Analysis(object):
             index=False,
         )
 ######################################################
-    def _plot_distribution(self, x_kept, x_outliers, T, p, bin_width=0.25, x_ceil=10.0):
+    def _plot_distribution(self, x_kept, x_outliers, T, p, bin_width=0.25, x_ceil=10.0,
+                           system_title=None, mu_gas=None):
         if x_kept.size < 2:
             print(f"Warning: <2 kept values at T={T}K, p={p}Bar — cannot plot")
             return
@@ -401,6 +411,9 @@ class Simulations_Analysis(object):
         x_line = np.linspace(xmin - bin_width, xmax + bin_width, 400)
         y_line = self._normal_pdf(x_line, mu, sigma) * x_kept.size * bw
         ax.plot(x_line, y_line, color='#008080', linewidth=2, label="Gaussian fit")
+        if mu_gas is not None:
+            ax.axvline(mu_gas, color='black', linestyle='--', linewidth=1.5,
+                       label=rf'$\mu_{{gas}}$ = {mu_gas:.2f} D')
     
         ax.set_xlim(xmin, xmax)
         raw_spacing = (xmax - xmin) / 8
@@ -409,7 +422,8 @@ class Simulations_Analysis(object):
     
         ax.set_xlabel(r'$\mu_{liquid}$ / D', fontsize=16)
         ax.set_ylabel('Frequency', fontsize=16)
-        ax.set_title(f'T = {T} K, p = {p} Bar', fontsize=14)
+        state = f'T = {T:g} K, p = {p:g} bar'
+        ax.set_title(f'{system_title}: {state}' if system_title else state, fontsize=14)
         ax.legend(frameon=False, fontsize=12)
         ax.tick_params(axis='both', which='major', labelsize=12)
     

@@ -299,7 +299,7 @@ class Gaussian_Calculations(object):
         text  += f'--Link1--\n'              
         text += f'%chk=Vacuum.chk' + '\n'        
         text += f'%nprocshared={self.nproc}' + '\n'
-        text += f'#p {self.method_v0}/{self.basis_v0} gfprint fopt=tight' + '\n'
+        text += f'#p {self.method_v1}/{self.basis_v1} gfprint fopt=tight' + '\n'
         text += '# nosymm pop=full scf=(verytight) density=current\n'
         text += '# integral=(ultrafine,NoXCTest) geom=checkpoint\n\n'
         text += f'{sol_keyword}\n\n'

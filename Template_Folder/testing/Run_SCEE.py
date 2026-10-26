@@ -205,6 +205,7 @@ for T, p in itertools.product(settings.state.temperatures, settings.state.pressu
         max_iqr_passes=settings.advanced.filtering.max_iqr_passes,
         min_pass_outliers=settings.advanced.filtering.min_pass_outliers,
         min_kept_configs=settings.advanced.filtering.min_kept_configs,
+        system_title=settings.molecule.system_title,
     )
 
 keep_masks = {tp: r['keep_mask'] for tp, r in filter_results.items()}

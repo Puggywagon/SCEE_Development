@@ -99,35 +99,12 @@ class Gro_Simulations(object):
         else:
             raise ValueError(f"role must be 'pure' or 'mixture', got {role!r}")
     
-        bath_itp = 'Solvent.itp' if settings.molecule.aa_surround else 'Solvent_UA.itp'
-        bath_name = self._moleculetype_name(bath_itp)
-
-        # Make sure we start on a new line, even if the topology file
-        # was saved without a trailing newline
-        with open(topology, 'rb') as file:
-            file.seek(0, os.SEEK_END)
-            needs_newline = file.tell() > 0 and (file.seek(-1, os.SEEK_END) or file.read(1) != b'\n')
+        if settings.molecule.aa_surround:
+            bath_name = 'Solvent'
+        else:
+            bath_name = 'Solvent_UA'
         with open(topology, 'a') as file:
-            if needs_newline:
-                file.write('\n')
             file.write(f'{bath_name}            {settings.initial_molecules}\n')
-################################################################################
-    def _moleculetype_name(self, itp_path):
-        """Return the molecule name from the first [ moleculetype ] section of
-        an .itp file, so the [ molecules ] entry matches whatever the force-field
-        generator called it (e.g. 'phenol' rather than 'Solvent')."""
-        in_section = False
-        with open(itp_path) as f:
-            for line in f:
-                stripped = line.split(';')[0].strip()
-                if not stripped:
-                    continue
-                if stripped.startswith('['):
-                    in_section = stripped.replace(' ', '').lower() == '[moleculetype]'
-                    continue
-                if in_section:
-                    return stripped.split()[0]
-        raise ValueError(f'No [ moleculetype ] name found in {itp_path}')
 ################################################################################
     def run_md2(self, settings, role):
         if role == 'pure':

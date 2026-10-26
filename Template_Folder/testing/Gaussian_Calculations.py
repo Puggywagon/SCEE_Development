@@ -423,7 +423,7 @@ class Gaussian_Calculations(object):
         re_str = 'Z-Matrix orientation:(?:.*\n){' + str(5+self.natom) + '}'
         
         filelist = glob.glob('*_c*_q?_chg.inp')
-        print(filelist)
+        print(f'{len(filelist)} SCEE charge files found')
         
         
         Model_Dipole, _ =Analysis.get_dipole_model_liquid() 
@@ -431,7 +431,10 @@ class Gaussian_Calculations(object):
         num1=self.settings.advanced.charge_scaling.qr1*ratio*self.qmax
         num2=self.settings.advanced.charge_scaling.qr2*ratio*self.qmax
         num3=self.settings.advanced.charge_scaling.qr3*ratio*self.qmax
-        for inpfile in filelist:
+        # The v1 inputs are only needed if the v1 jobs are going to be run.
+        # When just re-reading results, skip rebuilding them (this means
+        # reading all 600 large ONIOM .out files, which is slow).
+        for inpfile in (filelist if run else []):
 
             file0_str = inpfile.replace('_chg.inp', '')
             file0_str = file0_str.split('/')[-1]
@@ -440,7 +443,6 @@ class Gaussian_Calculations(object):
             
             outfile = rundir + file0_str + '.out'
             datfile = rundir + file0_str + '_v1.dat'
-            print(outfile, datfile)
             f = open(outfile, 'r')
             text_file = f.read()
             raw_data = re.findall(re_str, text_file, re.M)

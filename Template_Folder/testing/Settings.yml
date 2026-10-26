@@ -12,6 +12,7 @@ State_Conditions:
 #=================================================
 Molecule_Information:  
     System_Title: Acetophenone_2 #What name are you using for your system (please keep this the same as the folder you have generated for your molecule)
+    Display_Name: null # Name used in figure titles (null = use System_Title; set e.g. Aniline for paper figures)
     Gas_Dip: 3.15 # Calculated (DFT) gas-phase dipole, D. Please give us the gas phase of the molecule you are investigating Not sure where to put this when mixture
     Di_Const: 17.44 # Please give us the experimental dielectric constant of the molecule you are investigating Not sure where to put this when mixture
     Ref_Ind: 1.534 # Please give us the refractive index of the molecule you are investigating Not sure where to put this when mixture
@@ -50,6 +51,11 @@ Advanced_Settings:
         v1:
             method: blyp
             basis: aug-cc-pvtz
+    equilibration:
+        density_check: Yes            # extend NPT until the density has settled before production
+        density_tolerance_pct: 0.5    # max % change between the two halves of the second half of NPT
+        extend_ps: 500.0              # extension added each time the check fails (ps)
+        max_extensions: 4             # stop with an error after this many extensions
     gas_sampling:
         n_configurations: 50      # Gas-phase configurations taken from the vacuum NVT run (1 = final frame only, old behaviour)
         start_ps: 100.0           # Ignore frames before this time (ps)
@@ -62,6 +68,25 @@ Advanced_Settings:
          max_iqr_passes: 2           # hard cap on how many IQR passes
          min_pass_outliers: 3        # early termination: stop if a pass finds fewer than this
          min_kept_configs: 150       # convergence floor
+#=================================================
+# Input Files - names of the files in the system folder (change only if yours differ)
+#=================================================
+Input_Files:
+    Pure_Topology: Pure.top
+    Mixture_Topology: Mixture.top
+    Solvent_Gro: Solvent.gro            # built from Solvent_Smiles if Build_Molecule: Yes
+    Solvent_Itp: Solvent.itp
+    Solvent_UA_Gro: Solvent_UA.gro
+    Solvent_UA_Itp: Solvent_UA.itp
+    Solute_Gro: Solute.gro
+    Solute_Itp: Solute.itp
+    MDP_Vacuum_EM: minim_vacuum.mdp
+    MDP_Vacuum_NVT: nvt_vacuum.mdp
+    MDP_Box_EM: minim.mdp
+    MDP_Box_NVT: nvt.mdp
+    MDP_Box_NPT: npt.mdp
+    MDP_Production_Template: template_2.mdp   # must contain TEMPERATURE and PRESSURE placeholders
+
 #=================================================
 # Run Control - which stages to run (Yes = run, No = skip and re-read existing outputs)
 #=================================================
