@@ -28,6 +28,10 @@ class Gro_Simulations(object):
             raise ValueError(f"role must be 'pure' or 'mixture', got {role!r}")
     
             
+        # Make sure [ molecules ] names the central molecule as its .itp does,
+        # and doesn't already contain a bath line from an earlier run
+        self.prepare_topology(settings, role)
+
         L = settings.advanced.configuration.box_length_nm + 1.7
         # The +1.7 nm is empirically determined: gmx insert-molecules
         # needs box headroom to place molecules without clipping. Values
@@ -108,12 +112,76 @@ class Gro_Simulations(object):
         # Make sure we start on a new line, even if the topology file
         # was saved without a trailing newline
         with open(topology, 'rb') as file:
-            file.seek(0, os.SEEK_END)
-            needs_newline = file.tell() > 0 and (file.seek(-1, os.SEEK_END) or file.read(1) != b'\n')
+            data = file.read()
+        needs_newline = len(data) > 0 and not data.endswith(b'\n')
         with open(topology, 'a') as file:
             if needs_newline:
                 file.write('\n')
             file.write(f'{bath_name}            {settings.initial_molecules}\n')
+################################################################################
+    @staticmethod
+    def _molecules_section(lines):
+        """Return (start, end) line indices of the [ molecules ] entries and the
+        parsed entries [(line_index, name, count), ...]."""
+        start, entries = None, []
+        for i, line in enumerate(lines):
+            text = line.split(';')[0].strip()
+            if text.startswith('['):
+                if text.replace(' ', '').lower() == '[molecules]':
+                    start = i
+                elif start is not None:
+                    break
+                continue
+            if start is not None and text:
+                parts = text.split()
+                if len(parts) >= 2:
+                    entries.append((i, parts[0], parts[1]))
+        if start is None:
+            raise ValueError('No [ molecules ] section found in the topology')
+        return start, entries
+################################################################################
+    def prepare_topology(self, settings, role='pure'):
+        """Check and, where safe, correct [ molecules ] before the vacuum run.
+
+        - The central molecule's name must match the [ moleculetype ] in its
+          .itp (e.g. 'phenol', not 'Solvent'). If it doesn't, it is corrected
+          (the original is kept as <topology>.bak).
+        - The section must list only the central molecule. A bath line left
+          from an earlier run would be duplicated, so the run stops instead.
+        """
+        if role == 'pure':
+            topology, central_itp = settings.files.pure_topology, settings.files.solvent_itp
+        else:
+            topology, central_itp = settings.files.mixture_topology, settings.files.solute_itp
+        central_name = self._moleculetype_name(central_itp)
+
+        with open(topology) as f:
+            lines = f.readlines()
+        _, entries = self._molecules_section(lines)
+
+        if len(entries) == 0:
+            raise ValueError(f'[ molecules ] in {topology} is empty; it should list '
+                             f'the central molecule ({central_name} 1)')
+        if len(entries) > 1:
+            listed = ', '.join(f'{n} {c}' for _, n, c in entries)
+            raise ValueError(
+                f'[ molecules ] in {topology} already lists more than the central molecule '
+                f'({listed}). It looks like the bath was added by an earlier run. Reset it '
+                f'to just "{central_name}  1" before running MD setup again.')
+
+        idx, name, count = entries[0]
+        if count != '1':
+            raise ValueError(f'The central molecule in {topology} should have count 1, got {count}')
+        if name != central_name:
+            with open(topology + '.bak', 'w') as f:
+                f.writelines(lines)
+            lines[idx] = f'{central_name}            1\n'
+            with open(topology, 'w') as f:
+                f.writelines(lines)
+            print(f'Note: {topology} listed the central molecule as "{name}", but {central_itp} '
+                  f'calls it "{central_name}". Corrected (original saved as {topology}.bak).')
+        else:
+            print(f'Topology check: [ molecules ] lists {central_name} 1, matching {central_itp}.')
 ################################################################################
     def bath_molecule_count(self, settings, role='pure'):
         """Number of bath molecules actually listed in [ molecules ] of the
