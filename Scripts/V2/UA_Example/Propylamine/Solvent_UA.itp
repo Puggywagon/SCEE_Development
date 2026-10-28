@@ -1,0 +1,39 @@
+[moleculetype]
+
+Solvent_UA      3
+
+ [ atoms ]
+ ;   nr       type  resnr residue  atom   cgnr     charge       mass  typeB    chargeB      massB
+          1  trap_023         1       CNH         N         1    -0.871    14.067
+          2  trap_003         1       CNH         C         2     0.113    14.027
+          3  trap_003         1       CNH         C         3     0.000    14.027
+          4  trap_002         1       CNH         C         4     0.000    15.035
+          5  trap_024         1       CNH         HN         5     0.379     1.008
+          6  trap_024         1       CNH         HN         6     0.379     1.008
+ 
+
+ [ constraints ]
+ ;  ai    aj funct            c0            c1            c2            c3
+     1     2     1  0.1448
+     1     5     1  0.101
+     1     6     1  0.101
+     2     3     1  0.154 
+     3     4     1  0.154
+
+ [ pairs ]
+ ;  ai    aj funct            c0            c1            c2            c3
+ 
+ [ angles ]
+ ;  ai    aj    ak funct            c0            c1            c2            c3
+  5  1  6    1
+  5  1  2    1
+  6  1  2    1
+  1  2  3    1
+  2  3  4    1
+
+ [ dihedrals ]
+ ;  ai    aj    ak    al funct            c0            c1            c2            c3            c4            c5
+ 5  1  2  3   3
+ 6  1  2  3   3
+ 1  2  3  4   3
+

@@ -1,0 +1,353 @@
+#!/usr/bin/python3
+import yaml
+import math
+from pathlib import Path
+from dataclasses import dataclass, field
+from typing import Optional
+################################################################################
+# Avogadro's constant (SI exact value, post-2019 redefinition), mol^-1
+AVOGADRO = 6.02214076e23
+ 
+ 
+@dataclass
+class StateConditions:
+    temperatures: list      # K, e.g. [298] or [298, 323, 348]
+    pressures: list         # bar, e.g. [1] or [1, 10, 100]
+    replicas: int           # number of replicas; runs as replica_1 .. replica_N
+ 
+ 
+@dataclass
+class Molecule:
+    system_title: str
+    gas_dipole: float                       # D (Debye)
+    dielectric_constant: float              # experimental, dimensionless
+    refractive_index: float                 # dimensionless
+    sol_keyword: str                        # Gaussian SCRF keyword
+    density: float                          # g/cm^3 (experimental)
+    molar_mass: float                       # g/mol
+    aa_surround: bool                       # True for AA bath, False for UA
+    solvent_smiles: Optional[str]           # None if user provides solvent .gro
+    mixture: bool                           # True if a solute is also present
+    solute_smiles: Optional[str]            # None if pure OR if .gro provided
+    display_name: Optional[str] = None      # name used in figure titles
+
+    # Derived at load time
+    calculated_dielectric: float = field(init=False)
+ 
+    def __post_init__(self):
+        # Figure titles: use Display_Name if given (e.g. for paper figures),
+        # otherwise the system title
+        if not self.display_name:
+            self.display_name = self.system_title
+        # Optical (high-frequency) dielectric correction:
+        #     eps_calc = eps_exp - n^2 + 1
+        # Used in PCM2 calculations.
+        self.calculated_dielectric = round(
+            self.dielectric_constant - self.refractive_index ** 2 + 1, 3
+        )
+ 
+ 
+@dataclass
+class GromacsSoftware:
+    ntmpi: int          # MPI threads
+    ntomp: int          # OpenMP threads
+    pin: str            # 'on' or 'off' — passed to gmx mdrun -pin
+    pinoffset: int      # CPU offset for pinning
+ 
+ 
+@dataclass
+class GaussianSoftware:
+    g09root_override: Optional[str]    # None = auto-detect
+    scratch_dir: str                   # GAUSS_SCRDIR
+    max_jobs: int                      # parallel job limit on this machine
+    nproc: int                         # cores per Gaussian job (%nprocshared)
+    mem: str                           # memory per job, e.g. "5GB"
+ 
+ 
+@dataclass
+class Software:
+    gromacs: GromacsSoftware
+    gaussian: GaussianSoftware
+ 
+ 
+@dataclass
+class Configuration:
+    box_length_nm: float        # cubic box edge length, nm
+    cluster_radius_nm: float    # cluster radius for dipole calculations, nm
+ 
+ 
+@dataclass
+class Sampling:
+    n_configurations: int       # configurations extracted from MD trajectory
+ 
+ 
+@dataclass
+class GasSampling:
+    n_configurations: int       # gas-phase configurations taken from nvt_vacuum2 (<=1: final frame only)
+    start_ps: float             # discard frames before this time (ps)
+    dt_ps: float                # spacing between extracted frames (ps)
+
+
+@dataclass
+class OptimalDipole:
+    polarisation_fraction: float   # fraction of the gas->liquid dipole shift, e.g. 0.45
+
+
+@dataclass
+class ChargeScaling:
+    qr1: float
+    qr2: float
+    qr3: float
+ 
+ 
+@dataclass
+class ElectronicStructureLevel:
+    method: str
+    basis: str
+ 
+ 
+@dataclass
+class ElectronicStructure:
+    v0: ElectronicStructureLevel   # low-level optimisation
+    v1: ElectronicStructureLevel   # high-level single point
+
+@dataclass
+class Filtering:
+    iqr_k: float                 # IQR multiplier
+    max_iqr_passes: int          # hard cap on how many IQR passes
+    min_pass_outliers: int       # early termination: stop if a pass finds fewer than this
+    min_kept_configs: int        # convergence floor
+ 
+@dataclass
+class InputFiles:
+    # Topologies and structures the user supplies (names as in the system folder)
+    pure_topology: str = 'Pure.top'
+    mixture_topology: str = 'Mixture.top'
+    solvent_gro: str = 'Solvent.gro'
+    solvent_itp: str = 'Solvent.itp'
+    solvent_ua_gro: str = 'Solvent_UA.gro'
+    solvent_ua_itp: str = 'Solvent_UA.itp'
+    solute_gro: str = 'Solute.gro'
+    solute_itp: str = 'Solute.itp'
+    # GROMACS parameter files
+    mdp_vacuum_em: str = 'minim_vacuum.mdp'
+    mdp_vacuum_nvt: str = 'nvt_vacuum.mdp'
+    mdp_box_em: str = 'minim.mdp'
+    mdp_box_nvt: str = 'nvt.mdp'
+    mdp_box_npt: str = 'npt.mdp'
+    mdp_production_template: str = 'template_2.mdp'
+
+
+@dataclass
+class Equilibration:
+    density_check: bool          # check NPT density has converged before production
+    density_tolerance_pct: float # max % difference between the two halves of the last part of NPT
+    extend_ps: float             # how much to extend NPT by if not converged
+    max_extensions: int          # give up (and stop) after this many extensions
+
+
+@dataclass
+class AdvancedSettings:
+    configuration: Configuration
+    sampling: Sampling
+    charge_scaling: ChargeScaling
+    electronic_structure: ElectronicStructure
+    filtering: Filtering
+    gas_sampling: GasSampling
+    optimal_dipole: OptimalDipole
+    equilibration: Equilibration
+
+@dataclass
+class RunControl:
+    build: bool          # build Solvent.gro (and Solvent_UA.gro) from SMILES
+    md_setup: bool       # run_md1 (vacuum EM + NVT, bath insertion, Pure.top) and run_md2 (box EM, NVT, NPT)
+    production: bool     # run_md3 per replica + extraction of the liquid configurations
+    scee_qm: bool        # ONIOM inputs, v0 optimisations (init3) and v1 single points (init4)
+    gas_qm: bool         # gas-phase config extraction + Vacuum/PCM1/PCM2
+
+
+@dataclass
+class Settings:
+    state: StateConditions
+    molecule: Molecule
+    software: Software
+    advanced: AdvancedSettings
+    run: RunControl
+    files: InputFiles
+ 
+    # Derived flags
+    is_mixture: bool = field(init=False)
+    build_solvent_gro: bool = field(init=False)
+    build_solute_gro: bool = field(init=False)
+ 
+    # Derived molecule counts (cubic box, scientific units handled inside)
+    N: float = field(init=False)
+    initial_molecules: int = field(init=False)
+ 
+    def __post_init__(self):
+        self.is_mixture = self.molecule.mixture
+ 
+        self.build_solvent_gro = self.molecule.solvent_smiles is not None
+        self.build_solute_gro = (
+            self.is_mixture and self.molecule.solute_smiles is not None
+        )
+ 
+        # Target molecule count for the cubic box.
+        # density [g/cm^3] * volume [cm^3] / molar_mass [g/mol] * N_A [/mol]
+        # L is in nm; 1 nm = 1e-7 cm, so volume = (L * 1e-7)^3 cm^3.
+        L_nm = self.advanced.configuration.box_length_nm
+        rho = self.molecule.density
+        M = self.molecule.molar_mass
+        volume_cm3 = (L_nm * 1e-7) ** 3
+        self.N = (rho * volume_cm3 / M) * AVOGADRO
+ 
+        # How many to insert: target + 5% buffer, minus the one already in
+        # the box from the vacuum step.
+        self.initial_molecules = int(math.ceil(self.N + 0.05 * self.N) - 1)
+ 
+ 
+def load_settings(path: str = "Settings.yml") -> Settings:
+    yaml_path = Path(path)
+    with yaml_path.open("r") as f:
+        data = yaml.safe_load(f)
+ 
+    if not isinstance(data, dict):
+        raise ValueError(
+            f"{path} did not parse to a YAML mapping (dict). "
+            f"Got {type(data).__name__}."
+        )
+ 
+    # --- State Conditions ---
+    sc = data["State_Conditions"]
+    state = StateConditions(
+        temperatures=[float(t) for t in sc["Temperature"]],
+        pressures=[float(p) for p in sc["Pressure"]],
+        replicas=sc["Replicas"],
+    )
+ 
+    # --- Molecule Information ---
+    mi = data["Molecule_Information"]
+    molecule = Molecule(
+        system_title=mi["System_Title"],
+        gas_dipole=mi["Gas_Dip"],
+        dielectric_constant=mi["Di_Const"],
+        refractive_index=mi["Ref_Ind"],
+        sol_keyword=mi["sol_keyword"],
+        density=mi["density"],
+        molar_mass=mi["mol_mass"],
+        aa_surround=bool(mi["AA_Surround"]),
+        solvent_smiles=mi["Solvent_Smiles"],
+        mixture=bool(mi["Mixture"]),
+        solute_smiles=mi["Solute_Smiles"],
+        display_name=mi.get("Display_Name"),
+    )
+ 
+    # --- Software ---
+    sw = data["Software"]
+    gromacs_sw = GromacsSoftware(
+        ntmpi=sw["GROMACS"]["ntmpi"],
+        ntomp=sw["GROMACS"]["ntomp"],
+        pin=sw["GROMACS"]["pin"],
+        pinoffset=sw["GROMACS"]["pinoffset"],
+    )
+    gaussian_sw = GaussianSoftware(
+        g09root_override=sw["Gaussian"]["g09root_override"],
+        scratch_dir=sw["Gaussian"]["scratch_dir"],
+        max_jobs=sw["Gaussian"]["max_jobs"],
+        nproc=sw["Gaussian"]["nproc"],
+        mem=sw["Gaussian"]["mem"],
+    )
+    software = Software(gromacs=gromacs_sw, gaussian=gaussian_sw)
+ 
+    # --- Advanced Settings ---
+    adv = data["Advanced_Settings"]
+    advanced = AdvancedSettings(
+        configuration=Configuration(
+            box_length_nm=adv["configuration"]["box_length_nm"],
+            cluster_radius_nm=adv["configuration"]["cluster_radius_nm"],
+        ),
+        sampling=Sampling(
+            n_configurations=adv["sampling"]["n_configurations"],
+        ),
+        charge_scaling=ChargeScaling(
+            qr1=adv["electrostatics"]["charge_scaling"]["qr1"],
+            qr2=adv["electrostatics"]["charge_scaling"]["qr2"],
+            qr3=adv["electrostatics"]["charge_scaling"]["qr3"],
+        ),
+        electronic_structure=ElectronicStructure(
+            v0=ElectronicStructureLevel(
+                method=adv["electronic_structure"]["v0"]["method"],
+                basis=adv["electronic_structure"]["v0"]["basis"],
+            ),
+            v1=ElectronicStructureLevel(
+                method=adv["electronic_structure"]["v1"]["method"],
+                basis=adv["electronic_structure"]["v1"]["basis"],
+            ),
+        ),
+        filtering=Filtering(
+            iqr_k=float(adv["filtering"]["iqr_k"]),
+            max_iqr_passes=int(adv["filtering"]["max_iqr_passes"]),
+            min_pass_outliers=int(adv["filtering"]["min_pass_outliers"]),
+            min_kept_configs=int(adv["filtering"]["min_kept_configs"]),
+        ),
+        # Optional blocks: defaults are used if an older Settings.yml lacks them
+        gas_sampling=GasSampling(
+            n_configurations=int(adv.get("gas_sampling", {}).get("n_configurations", 50)),
+            start_ps=float(adv.get("gas_sampling", {}).get("start_ps", 100.0)),
+            dt_ps=float(adv.get("gas_sampling", {}).get("dt_ps", 20.0)),
+        ),
+        equilibration=Equilibration(
+            density_check=bool(adv.get("equilibration", {}).get("density_check", True)),
+            density_tolerance_pct=float(adv.get("equilibration", {}).get("density_tolerance_pct", 0.5)),
+            extend_ps=float(adv.get("equilibration", {}).get("extend_ps", 500.0)),
+            max_extensions=int(adv.get("equilibration", {}).get("max_extensions", 4)),
+        ),
+        optimal_dipole=OptimalDipole(
+            polarisation_fraction=float(
+                adv.get("optimal_dipole", {}).get("polarisation_fraction", 0.45)
+            ),
+        ),
+    )
+ 
+    # --- Run Control (optional; everything runs if the block is missing) ---
+    rc = data.get("Run_Control") or {}
+    def _flag(key):
+        val = rc.get(key, True)
+        if not isinstance(val, bool):
+            raise ValueError(f"Run_Control.{key} must be Yes/No or True/False, got {val!r}")
+        return val
+    run = RunControl(
+        build=_flag("Build_Molecule"),
+        md_setup=_flag("MD_Setup"),
+        production=_flag("MD_Production"),
+        scee_qm=_flag("SCEE_QM"),
+        gas_qm=_flag("Gas_Phase_QM"),
+    )
+
+    # --- Input Files (optional; the standard names are used if missing) ---
+    fi = data.get("Input_Files") or {}
+    key_map = {
+        "Pure_Topology": "pure_topology", "Mixture_Topology": "mixture_topology",
+        "Solvent_Gro": "solvent_gro", "Solvent_Itp": "solvent_itp",
+        "Solvent_UA_Gro": "solvent_ua_gro", "Solvent_UA_Itp": "solvent_ua_itp",
+        "Solute_Gro": "solute_gro", "Solute_Itp": "solute_itp",
+        "MDP_Vacuum_EM": "mdp_vacuum_em", "MDP_Vacuum_NVT": "mdp_vacuum_nvt",
+        "MDP_Box_EM": "mdp_box_em", "MDP_Box_NVT": "mdp_box_nvt",
+        "MDP_Box_NPT": "mdp_box_npt", "MDP_Production_Template": "mdp_production_template",
+    }
+    unknown = set(fi) - set(key_map)
+    if unknown:
+        raise ValueError(f"Unknown Input_Files entries: {sorted(unknown)}. "
+                         f"Allowed: {sorted(key_map)}")
+    files = InputFiles(**{key_map[k]: str(v) for k, v in fi.items() if v})
+
+    return Settings(
+        state=state,
+        molecule=molecule,
+        software=software,
+        advanced=advanced,
+        run=run,
+        files=files,
+    )
+ 
+

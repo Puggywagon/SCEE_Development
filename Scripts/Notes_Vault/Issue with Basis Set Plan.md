@@ -28,25 +28,25 @@ This is going to take a while so I am going to focus on three or four other area
 
 **Trial Check**
 Testing the fixed Basis Set on these systems before I start the full rerun.
-- [ ] Ethanol_MJ 🆔 rpwzx9
-- [ ] Ethanol_UA_OldBasis 🆔 3b3rvk ⛔ rpwzx9
-- [ ] Ethanol_UA_NewBasis 🆔 f09cuu ⛔ 3b3rvk
-- [ ] Ethanol_AA 🆔 7eed26 ⛔ f09cuu
+- [x] Ethanol_MJ 🆔 rpwzx9 ✅ 2026-04-09
+- [x] Ethanol_UA_OldBasis 🆔 3b3rvk ⛔ rpwzx9 ✅ 2026-04-09
+- [x] Ethanol_UA_NewBasis 🆔 f09cuu ⛔ 3b3rvk ✅ 2026-04-09
+- [x] Ethanol_AA 🆔 7eed26 ⛔ f09cuu ✅ 2026-04-09
 
 **Reruns**
-- [ ] Alcohols 🆔 mtqwk0 ⛔ wt8xfg
-	- [ ] Methanol 🆔 8cdjci ⛔ 7eed26
-	- [ ] 1-Butanol 🆔 z6gflv ⛔ 8cdjci
-	- [ ] 1-Propanol 🆔 m7utn7 ⛔ z6gflv
-	- [ ] 2-Propanol 🆔 ni6wni ⛔ m7utn7
-	- [ ] 2-Butanol 🆔 wt8xfg ⛔ ni6wni
-- [ ] Amines 🆔 vtksb0 ⛔ ou6hr0
-	- [ ] Ethylamine 🆔 5m65lq ⛔ mtqwk0
-	- [ ] Propylamine 🆔 j1tbh5 ⛔ 5m65lq
-	- [ ] Butylamine 🆔 ou6hr0 ⛔ j1tbh5
-- [ ] Ketones 🆔 nzr4s7 ⛔ wi5ob1
-	- [ ] Acetone 🆔 90ptnv ⛔ vtksb0
-	- [ ] Butanone 🆔 wi5ob1 ⛔ 90ptnv
+- [x] Alcohols 🆔 mtqwk0 ⛔ wt8xfg ✅ 2026-04-09
+	- [x] Methanol 🆔 8cdjci ⛔ 7eed26 ✅ 2026-04-09
+	- [x] 1-Butanol 🆔 z6gflv ⛔ 8cdjci ✅ 2026-04-09
+	- [x] 1-Propanol 🆔 m7utn7 ⛔ z6gflv ✅ 2026-04-09
+	- [x] 2-Propanol 🆔 ni6wni ⛔ m7utn7 ✅ 2026-04-09
+	- [x] 2-Butanol 🆔 wt8xfg ⛔ ni6wni ✅ 2026-04-09
+- [x] Amines 🆔 vtksb0 ⛔ ou6hr0 ✅ 2026-04-09
+	- [x] Ethylamine 🆔 5m65lq ⛔ mtqwk0 ✅ 2026-04-09
+	- [x] Propylamine 🆔 j1tbh5 ⛔ 5m65lq ✅ 2026-04-09
+	- [x] Butylamine 🆔 ou6hr0 ⛔ j1tbh5 ✅ 2026-04-09
+- [x] Ketones 🆔 nzr4s7 ⛔ wi5ob1 ✅ 2026-04-09
+	- [x] Acetone 🆔 90ptnv ⛔ vtksb0 ✅ 2026-04-09
+	- [x] Butanone 🆔 wi5ob1 ⛔ 90ptnv ✅ 2026-04-09
 - [ ] Aromatics ⛔ 0mmlds
 	- [ ] Aniline 🆔 fyp0w8 ⛔ nzr4s7
 	- [ ] Phenol 🆔 zyuhjk ⛔ fyp0w8

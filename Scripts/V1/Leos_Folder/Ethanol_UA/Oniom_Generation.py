@@ -207,7 +207,7 @@ class Oniom_Generation(object):
                 Sigma=0.2673
                 Epsilon=0.0418
             else:
-                Sigma=matching_type.iloc[0]['Sigma']
+                Sigma=matching_type.iloc[0]['Sigma']*10
                 Epsilon=matching_type.iloc[0]['Epsilon']
             qi=matching_type.iloc[0]['q']
             wi=qi/qmax            

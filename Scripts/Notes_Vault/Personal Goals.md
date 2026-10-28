@@ -1,0 +1,2 @@
+- Consistent wake up and bed time, along with consistent routines before and after bedtime
+- Look after myself better, with eating more fruit and veg, less snacks, drink more water, cook for myself, not takeout. 

@@ -1,0 +1,15 @@
+;Include forcefield parameters
+#include "TrappeFF_optimum.itp"
+
+
+#include "Ethanol_AA.itp"
+#include "Ethanol_UA.itp"
+
+[ system ]
+; Name
+Ethanol
+
+[ molecules ]
+; Compound        #mols
+Ethanol           1
+Eth            2567

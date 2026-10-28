@@ -1,0 +1,25 @@
+ [ moleculetype ]
+ ; Name            nrexcl
+ Solvent_UA  3
+ 
+ [ atoms ]
+  1  trap_014   1   EOH     OH   1    -0.646    15.9994
+  2  trap_017   1   EOH     CH   2     0.240    14.027
+  3  trap_002   1   EOH     CH   3     0.000    15.035
+  4  trap_015   1   EOH     HC   4     0.406     1.008
+ 
+ [ constraints ]
+ ;  ai    aj funct            c0            c1            c2            c3
+  1   2   1   0.143
+  1   4   1   0.0945
+  2   3   1   0.154
+ 
+ [ angles ]
+ ;  ai    aj    ak funct            c0            c1            c2            c3
+  4   1   2    1
+  1   2   3    1
+ 
+ [ dihedrals ]
+ ;  ai    aj    ak    al funct            c0            c1            c2            c3            c4            c5
+  4   1   2   3     3
+ 

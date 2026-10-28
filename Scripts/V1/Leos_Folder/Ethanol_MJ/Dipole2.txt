@@ -1,0 +1,29 @@
+Using 5 as mu_max and -1 as the dipole moment.
+WARNING: EpsilonRF = 0.0, this really means EpsilonRF = infinity
+Selected 0: 'System'
+There are 2568 molecules in the selection
+Average volume over run is 251.682
+
+Dipole moment (Debye)
+---------------------
+Average  =   2.0704  Std. Dev. =   0.1005  Error =   0.0001
+
+The following averages for the complete trajectory have been calculated:
+
+ Total < M_x > = -31.0283 Debye
+ Total < M_y > = -41.7247 Debye
+ Total < M_z > = 2.69784 Debye
+
+ Total < M_x^2 > = 9429.03 Debye^2
+ Total < M_y^2 > = 10970.4 Debye^2
+ Total < M_z^2 > = 10993.1 Debye^2
+
+ Total < |M|^2 > = 31392.5 Debye^2
+ Total |< M >|^2 = 2710.99 Debye^2
+
+ < |M|^2 > - |< M >|^2 = 28681.5 Debye^2
+
+Finite system Kirkwood g factor G_k = 2.60561
+Infinite system Kirkwood g factor g_k = 1.80642
+
+Epsilon = 12.5248
