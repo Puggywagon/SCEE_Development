@@ -25,6 +25,7 @@ class Gaussian_Calculations(object):
         self.nproc = gauss.nproc
         self.mem = gauss.mem
         self.max_jobs = gauss.max_jobs
+        self.count_md_jobs = gauss.count_md_jobs
         
         if gauss.g09root_override is None:
             raise NotImplementedError(
@@ -211,6 +212,11 @@ class Gaussian_Calculations(object):
         else:
             text += f'for datfile in $(ls {run_str}{step_str}.dat); do' + '\n'
         text += '  outfile=${datfile%.dat}.out' + '\n'
+        if datfiles is None:
+            # SCEE jobs: don't rerun a job that already finished normally
+            text += '  if [ -f "$outfile" ] && grep -q "Normal termination" "$outfile"; then\n'
+            text += '      echo "$datfile already complete, skipping"; continue\n'
+            text += '  fi\n'
         text += '  idx=$(( i % ${#SCRATCH_DIRS[@]} ))' + '\n'
         text += '  GAUSS_SCRDIR=${SCRATCH_DIRS[$idx]}' + '\n'
         text += '  echo "Preparing $datfile -> $outfile on $GAUSS_SCRDIR"' + '\n'
@@ -218,7 +224,13 @@ class Gaussian_Calculations(object):
         # --- GLOBAL THROTTLE: never exceed MAXJOBS g09 processes on this machine ---
         text += '  while true; do' + '\n'
         text += '      g09c=$(pgrep -c g09 2>/dev/null)\n'
-        text += '      mdc=$(pgrep -fc "gmx mdrun" 2>/dev/null)\n'
+        if self.count_md_jobs:
+            # Optional: GROMACS runs also take up job slots
+            text += '      mdc=$(pgrep -fc "gmx mdrun" 2>/dev/null)\n'
+        else:
+            # Default: only Gaussian jobs count (MD runs are pinned to their own cores).
+            # Counting MD let one molecule's production block another's Gaussian jobs.
+            text += '      mdc=0\n'
         text += '      g09c=${g09c:-0}\n'
         text += '      mdc=${mdc:-0}\n'
         text += '      if [ $((g09c + mdc)) -lt "$MAXJOBS" ]; then\n'

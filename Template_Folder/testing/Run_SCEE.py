@@ -166,6 +166,8 @@ print(f'Using {len(gas_gros)} gas-phase configuration(s)')
 mu_Vacuum = Gauss.init0(gas_gros, run=run_gas_qm)
 PCM1 = Gauss.init1(gas_gros, run=run_gas_qm)
 PCM2 = Gauss.init2(gas_gros, run=run_gas_qm)
+Analysis.plot_gas_distributions(system_title=settings.molecule.display_name,
+                                reference=settings.molecule.gas_dipole)
 
 dipole_model=Analysis.get_dipole_model() #I have discovered that this step stops later steps from being able to use -v
 gas_potential=Analysis.Pot_Gas() #I have discovered that this step stops later steps from being able to use -v
@@ -179,7 +181,10 @@ for replica, T, p in itertools.product(replicas, settings.state.temperatures, se
     if not RUN_PRODUCTION and not os.path.isdir(leaf):
         raise FileNotFoundError(f'Expected existing run folder {leaf} (reanalysis mode)')
     with cd(leaf):
-        if RUN_PRODUCTION:
+        md3_done = bool(glob.glob('*_QMMM_md3.gro')) and bool(glob.glob('conf_*.gro'))
+        if RUN_PRODUCTION and md3_done:
+            print(f'{leaf}: production already finished, not rerun')
+        if RUN_PRODUCTION and not md3_done:
             MD.run_md3(settings, role='pure', HOMEDIR=HOMEDIR, T=T, p=p)
         if RUN_SCEE_QM:
             # Build the 3 x 200 ONIOM inputs and run the v0 optimisations

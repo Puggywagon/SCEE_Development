@@ -115,5 +115,6 @@ Software:
         g09root_override: /home/zoe/Software/Gaussian/g09_pgi         # null = auto-detect; set to Gaussian install root to override
         scratch_dir: /home/zoe/Research/Gaussian/scratch # where Gaussian writes temporary files
         max_jobs: 6 # how many parallel Gaussian jobs (depends on machine)
+        count_md_jobs: No # Yes = running GROMACS jobs also count towards max_jobs (can stall Gaussian while other molecules run MD)
         nproc: 8
         mem: 5GB

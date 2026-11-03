@@ -369,7 +369,8 @@ class Simulations_Analysis(object):
         mu_liq_outliers = mu_liq_finite[all_removed_mask]
         self._plot_distribution(mu_liq_current, mu_liq_outliers, T=T, p=p,
                                 bin_width=bin_width, x_ceil=x_ceil,
-                                system_title=system_title, mu_gas=mu_gas_exp)
+                                system_title=system_title, mu_gas=mu_gas_exp,
+                                mu_vac=mu_Vacuum)
         
         # ----- Build keep_full mask over the original df_pool indices -----
         finite_indices = np.where(finite_mask)[0]
@@ -396,8 +397,80 @@ class Simulations_Analysis(object):
             index=False,
         )
 ######################################################
+    def plot_gas_distributions(self, system_title=None, kinds=('Vacuum', 'PCM1', 'PCM2'),
+                               reference=None, outdir='./Results'):
+        """Histogram of the per-configuration gas-phase dipoles (Vacuum, PCM1,
+        PCM2), one panel each, from Dipole_<kind>_configs.csv.
+
+        Marks the mean, and optionally a reference value (e.g. a literature or
+        experimental gas dipole) on the Vacuum panel. Also writes the summary
+        statistics to <outdir>/Gas_Phase_Stats.csv.
+        """
+        panels, rows = [], []
+        for kind in kinds:
+            path = f'Dipole_{kind}_configs.csv'
+            if not os.path.exists(path):
+                print(f'No {path} found; skipping {kind} in the gas-phase plot')
+                continue
+            df = pd.read_csv(path)
+            vals = df['dipole'].to_numpy(dtype=float)
+            n_total = vals.size
+            vals = vals[np.isfinite(vals)]
+            if vals.size == 0:
+                continue
+            panels.append((kind, vals))
+            rows.append({
+                'kind': kind, 'N_configs': n_total, 'N_failed': n_total - vals.size,
+                'mean_D': vals.mean(),
+                'SD_D': vals.std(ddof=1) if vals.size > 1 else np.nan,
+                'SE_D': vals.std(ddof=1) / np.sqrt(vals.size) if vals.size > 1 else np.nan,
+                'median_D': np.median(vals), 'min_D': vals.min(), 'max_D': vals.max(),
+            })
+        if not panels:
+            return None
+
+        os.makedirs(outdir, exist_ok=True)
+        stats = pd.DataFrame(rows)
+        stats.to_csv(os.path.join(outdir, 'Gas_Phase_Stats.csv'), index=False)
+
+        fig, axes = plt.subplots(1, len(panels), figsize=(5 * len(panels), 4.5), squeeze=False)
+        for ax, (kind, vals) in zip(axes[0], panels):
+            spread = vals.max() - vals.min()
+            if spread < 1e-3:
+                # All configurations gave the same value (e.g. optimised to one
+                # minimum): draw a single narrow bar around it
+                bins = [vals.mean() - 0.0005, vals.mean() + 0.0005]
+            else:
+                pad = 0.1 * spread
+                bins = np.linspace(vals.min() - pad, vals.max() + pad, 21)
+            ax.hist(vals, bins=bins, color='purple', alpha=0.9)
+            if spread < 1e-3:
+                ax.set_xlim(vals.mean() - 0.005, vals.mean() + 0.005)
+            ax.axvline(vals.mean(), color='#d55e00' if kind == 'Vacuum' else '#008080',
+                       linestyle=':' if kind == 'Vacuum' else '-', linewidth=2,
+                       label=(f'calculated mean = {vals.mean():.3f} D' if kind == 'Vacuum'
+                              else f'mean = {vals.mean():.3f} D'))
+            if reference is not None and kind == 'Vacuum':
+                ax.axvline(reference, color='black', linestyle='--', linewidth=1.5,
+                           label=f'reference = {reference:.3f} D')
+            sd = vals.std(ddof=1) if vals.size > 1 else 0.0
+            ax.set_title(f'{kind}  (N = {vals.size}, SD = {sd:.3f} D)', fontsize=12)
+            ax.set_xlabel(r'$\mu$ / D', fontsize=13)
+            ax.set_ylabel('Frequency', fontsize=13)
+            ax.legend(frameon=False, fontsize=10)
+            ax.ticklabel_format(axis='x', useOffset=False)
+        if system_title:
+            fig.suptitle(f'{system_title}: gas-phase dipoles', fontsize=14)
+        fig.tight_layout()
+        for ext in ('png', 'pdf'):
+            fig.savefig(os.path.join(outdir, f'gas_phase_distributions.{ext}'),
+                        bbox_inches='tight', dpi=300)
+        plt.close(fig)
+        print(f'Gas-phase distributions saved to {outdir}/gas_phase_distributions.png')
+        return stats
+######################################################
     def _plot_distribution(self, x_kept, x_outliers, T, p, bin_width=0.25, x_ceil=10.0,
-                           system_title=None, mu_gas=None):
+                           system_title=None, mu_gas=None, mu_vac=None):
         if x_kept.size < 2:
             print(f"Warning: <2 kept values at T={T}K, p={p}Bar — cannot plot")
             return
@@ -430,7 +503,10 @@ class Simulations_Analysis(object):
         ax.plot(x_line, y_line, color='#008080', linewidth=2, label="Gaussian fit")
         if mu_gas is not None:
             ax.axvline(mu_gas, color='black', linestyle='--', linewidth=1.5,
-                       label=rf'$\mu_{{gas}}$ = {mu_gas:.2f} D')
+                       label=rf'$\mu_{{gas}}$ reference = {mu_gas:.3f} D')
+        if mu_vac is not None and np.isfinite(mu_vac):
+            ax.axvline(mu_vac, color='#d55e00', linestyle=':', linewidth=2,
+                       label=rf'$\mu_{{vac}}$ calculated = {mu_vac:.3f} D')
     
         ax.set_xlim(xmin, xmax)
         raw_spacing = (xmax - xmin) / 8

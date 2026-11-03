@@ -62,6 +62,7 @@ class GaussianSoftware:
     max_jobs: int                      # parallel job limit on this machine
     nproc: int                         # cores per Gaussian job (%nprocshared)
     mem: str                           # memory per job, e.g. "5GB"
+    count_md_jobs: bool = False        # also count running gmx mdrun processes against max_jobs
  
  
 @dataclass
@@ -256,6 +257,7 @@ def load_settings(path: str = "Settings.yml") -> Settings:
         max_jobs=sw["Gaussian"]["max_jobs"],
         nproc=sw["Gaussian"]["nproc"],
         mem=sw["Gaussian"]["mem"],
+        count_md_jobs=bool(sw["Gaussian"].get("count_md_jobs", False)),
     )
     software = Software(gromacs=gromacs_sw, gaussian=gaussian_sw)
  
