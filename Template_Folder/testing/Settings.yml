@@ -94,13 +94,13 @@ Input_Files:
 # Reanalysis:       Build_Molecule, MD_Setup, MD_Production, SCEE_QM = No; Gas_Phase_QM = Yes
 # Analysis only:    all No (re-reads every output and redoes filtering/analysis in minutes)
 Run_Control:
-    Build_Molecule: Yes   # build Solvent.gro from the SMILES string
-    MD_Setup: Yes         # vacuum EM + NVT, insert bath, box EM + NVT + NPT
+    Build_Molecule: No   # build Solvent.gro from the SMILES string
+    MD_Setup: No         # vacuum EM + NVT, insert bath, box EM + NVT + NPT
                           # !! reset Pure.top before re-running this, or the bath line is added twice
-    MD_Production: Yes    # production MD per replica + extraction of liquid configurations
-    SCEE_QM: Yes          # ONIOM optimisations and v1 single points for every configuration
     Gas_Phase_QM: Yes     # gas-phase configurations + Vacuum, PCM1 and PCM2 calculations
                           # (jobs that already finished normally are skipped)
+    MD_Production: No    # production MD per replica + extraction of liquid configurations
+    SCEE_QM: No          # ONIOM optimisations and v1 single points for every configuration
 
 #=================================================
 # Software Settings - Give us your software location and make adjustments if and only if you know what your doing.
@@ -114,7 +114,7 @@ Software:
     Gaussian:
         g09root_override: /home/zoe/Software/Gaussian/g09_pgi         # null = auto-detect; set to Gaussian install root to override
         scratch_dir: /home/zoe/Research/Gaussian/scratch # where Gaussian writes temporary files
-        max_jobs: 3 # how many parallel Gaussian jobs (depends on machine)
+        max_jobs: 2 # how many parallel Gaussian jobs (depends on machine)
         count_md_jobs: No # Yes = running GROMACS jobs also count towards max_jobs (can stall Gaussian while other molecules run MD)
         nproc: 8
         mem: 5GB
